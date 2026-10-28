@@ -364,5 +364,181 @@
         }
       ]
     }
+  },
+  {
+    "name": "preview-counts-unplaced-as-zero",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "S"
+        }
+      },
+      "settings": {
+        "allowPreview": true
+      }
+    },
+    "expected": {
+      "status": "preview",
+      "missing": 1,
+      "rows": [
+        {
+          "subjectId": "s1",
+          "total": 30,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s2",
+          "total": 0,
+          "sCount": 0,
+          "rank": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "preview-off-explicit-stays-locked",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "S"
+        }
+      },
+      "settings": {
+        "allowPreview": false
+      }
+    },
+    "expected": {
+      "status": "locked",
+      "missing": 1,
+      "rows": []
+    }
+  },
+  {
+    "name": "preview-nothing-placed",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {},
+      "settings": {
+        "allowPreview": true
+      }
+    },
+    "expected": {
+      "status": "preview",
+      "missing": 2,
+      "rows": [
+        {
+          "subjectId": "s1",
+          "total": 0,
+          "sCount": 0,
+          "rank": 1
+        },
+        {
+          "subjectId": "s2",
+          "total": 0,
+          "sCount": 0,
+          "rank": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "preview-on-but-complete-is-ready",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "S",
+          "s2": "A"
+        }
+      },
+      "settings": {
+        "allowPreview": true
+      }
+    },
+    "expected": {
+      "status": "ready",
+      "missing": 0,
+      "rows": [
+        {
+          "subjectId": "s1",
+          "total": 30,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s2",
+          "total": 20,
+          "sCount": 0,
+          "rank": 2
+        }
+      ]
+    }
   }
 ]

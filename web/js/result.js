@@ -23,6 +23,16 @@ createApp((data) => {
     return page;
   }
 
+  if (result.status === 'preview') {
+    page.append(
+      el(
+        'div',
+        { class: 'notice' },
+        `미리보기: 미배치 ${result.missing}건을 0점으로 계산한 임시 결과입니다. `,
+        el('a', { href: 'evaluate.html' }, '평가로 이동'),
+      ),
+    );
+  }
   page.append(
     el(
       'table',
@@ -41,7 +51,7 @@ createApp((data) => {
             {},
             el('td', {}, String(row.rank)),
             el('td', {}, row.name),
-            ...data.criteria.map((c) => el('td', { class: `tier tier-${row.tiers[c.id]}` }, row.tiers[c.id])),
+            ...data.criteria.map((c) => el('td', { class: `tier tier-${row.tiers[c.id]}` }, row.tiers[c.id] ?? '-')),
             el('td', {}, String(row.total)),
             el('td', {}, String(row.sCount)),
           ),

@@ -54,12 +54,13 @@ export function computeResults(data) {
     // 소수 점수표의 부동소수점 오차로 동점이 갈리지 않게 반올림해서 비교한다
     return { subjectId: subject.id, name: subject.name, total: Number(total.toFixed(6)), sCount, tiers };
   });
-  if (missing > 0) return { status: 'locked', missing, rows: [] };
+  // 미리보기를 켜면 미배치 칸은 0점으로 계산한 임시 결과를 낸다
+  if (missing > 0 && data.settings?.allowPreview !== true) return { status: 'locked', missing, rows: [] };
 
   const better = (a, b) => a.total > b.total || (a.total === b.total && a.sCount > b.sCount);
   const ranked = rows.map((row) => ({ ...row, rank: 1 + rows.filter((other) => better(other, row)).length }));
   ranked.sort((a, b) => a.rank - b.rank);
-  return { status: 'ready', missing: 0, rows: ranked };
+  return { status: missing > 0 ? 'preview' : 'ready', missing, rows: ranked };
 }
 
 export function progress(data, criterionId) {
@@ -74,6 +75,12 @@ export function validateData(data) {
   if (!isObject(data)) return ['data: 객체여야 합니다'];
   const errors = [];
   if (data.version !== 1) errors.push('version: 1이어야 합니다');
+  if (data.settings !== undefined) {
+    if (!isObject(data.settings)) errors.push('settings: 객체여야 합니다');
+    else if (data.settings.allowPreview !== undefined && typeof data.settings.allowPreview !== 'boolean') {
+      errors.push('settings.allowPreview: true 또는 false여야 합니다');
+    }
+  }
 
   const ids = { subjects: new Set(), criteria: new Set() };
   for (const key of ['subjects', 'criteria']) {

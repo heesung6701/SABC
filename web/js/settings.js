@@ -1,7 +1,7 @@
 import { TIERS, TIER_POINTS, validatePoints, parseImportJson, exportJson, parseNames, emptyData } from './core.js';
 import {
   addSubjects, addCriteria, renameSubject, renameCriterion, removeSubject, removeCriterion,
-  moveCriterion, setPoints, applyPreset,
+  moveCriterion, setPoints, applyPreset, setAllowPreview,
 } from './model.js';
 import { PRESETS } from './presets.js';
 import { createApp, el, renderNav } from './ui-common.js';
@@ -121,6 +121,19 @@ createApp((data, commit, current) => {
         pointsEditor(criterion, apply),
       ],
     }),
+    el(
+      'section', {},
+      el('h2', {}, '결과'),
+      el('label', {},
+        el('input', {
+          type: 'checkbox',
+          checked: data.settings?.allowPreview === true,
+          onchange: (event) => apply((d) => setAllowPreview(d, event.target.checked), { repaint: false }),
+        }),
+        ' 미배치가 남아 있어도 결과 미리보기 허용',
+      ),
+      el('p', { class: 'muted' }, '켜면 미배치 칸을 0점으로 계산한 임시 순위를 "미리보기"로 보여줍니다. 끄면 모두 배치해야 결과가 나옵니다.'),
+    ),
     el(
       'section', {},
       el('h2', {}, 'JSON'),

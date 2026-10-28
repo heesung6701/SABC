@@ -83,3 +83,7 @@ export function applyPreset(preset) {
     placements: {},
   };
 }
+
+export function setAllowPreview(data, allowed) {
+  return { ...data, settings: { ...data.settings, allowPreview: allowed } };
+}

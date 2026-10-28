@@ -16,6 +16,7 @@ import {
   setPoints,
   setPlacement,
   applyPreset,
+  setAllowPreview,
 } from '../web/js/model.js';
 import { PRESETS } from '../web/js/presets.js';
 
@@ -122,4 +123,21 @@ test('preset source is never mutated', () => {
     renameCriterion(addSubject(data, '추가'), 'c1', '바뀜');
   }
   assert.deepEqual(PRESETS, snapshot);
+});
+
+test('setAllowPreview turns the option on and off without touching other data', () => {
+  const on = setAllowPreview(base(), true);
+  assert.equal(on.settings.allowPreview, true);
+  assert.equal(setAllowPreview(on, false).settings.allowPreview, false);
+  assert.deepEqual(on.subjects, base().subjects);
+});
+
+test('other edits keep the preview option', () => {
+  const on = deepFreeze(setAllowPreview(structuredClone(base()), true));
+  assert.equal(removeSubject(on, 's1').settings.allowPreview, true);
+  assert.equal(addCriterion(on, '새 기준').settings.allowPreview, true);
+});
+
+test('applyPreset starts with preview off', () => {
+  assert.equal(applyPreset(PRESETS[0]).settings?.allowPreview ?? false, false);
 });

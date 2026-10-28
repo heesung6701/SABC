@@ -162,3 +162,22 @@ test('parseNames splits on newlines and commas', () => {
   assert.deepEqual(parseNames('가, 나\n다\n\n  라  ,'), ['가', '나', '다', '라']);
   assert.deepEqual(parseNames(''), []);
 });
+
+test('preview rows keep a null tier for unplaced cells', () => {
+  const { rows } = computeResults(byName('preview-counts-unplaced-as-zero').data);
+  assert.deepEqual(rows.find((r) => r.subjectId === 's2').tiers, { c1: null });
+});
+
+test('validateData checks the settings block', () => {
+  const ok = { ...validBase(), settings: { allowPreview: true } };
+  assert.deepEqual(validateData(ok), []);
+  assert.ok(validateData({ ...validBase(), settings: [] }).join('\n').includes('settings'));
+  assert.ok(
+    validateData({ ...validBase(), settings: { allowPreview: 'yes' } }).join('\n').includes('settings.allowPreview'),
+  );
+});
+
+test('settings survive export then import', () => {
+  const data = { ...validBase(), settings: { allowPreview: true } };
+  assert.deepEqual(parseImportJson(exportJson(data)).data, data);
+});

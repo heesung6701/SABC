@@ -24,6 +24,8 @@ textarea { width: 100%; min-height: 60px; margin-bottom: 6px; }
 .nav a[aria-current="page"] { background: var(--accent); color: #fff; }
 .alert { background: #3a1d1d; border: 1px solid var(--danger); color: #ffb3b3; border-radius: 6px; padding: 8px 12px; margin: 12px 0; }
 .alert p { margin: 2px 0; }
+.notice { background: #3a331a; border: 1px solid #c9a227; color: #f0dc8a; border-radius: 6px; padding: 8px 12px; margin: 12px 0; }
+.tier-null { background: #333; color: var(--muted); }
 .item { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .item input[type="text"] { flex: 1; min-width: 160px; }
 .points { display: flex; gap: 4px; align-items: center; flex-basis: 100%; }
