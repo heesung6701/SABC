@@ -57,6 +57,7 @@ createApp((data, commit) => {
         el('button', { class: c.id === criterion.id ? 'on' : '', onclick: () => { currentCriterionId = c.id; commit(data); } }, c.name),
       ),
     ),
+    ...(criterion.description ? [el('p', { class: 'desc' }, criterion.description)] : []),
     el('p', { class: 'muted' }, `진행률 ${placed}/${total}`),
     ...TIERS.map((tier) => el('div', { class: 'row' }, el('div', { class: `label tier-${tier}` }, tier), zone(tier))),
     el('div', { class: 'pool' }, el('p', { class: 'muted' }, '미배치'), zone(null)),

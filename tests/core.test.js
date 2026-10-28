@@ -181,3 +181,18 @@ test('settings survive export then import', () => {
   const data = { ...validBase(), settings: { allowPreview: true } };
   assert.deepEqual(parseImportJson(exportJson(data)).data, data);
 });
+
+test('validateData checks criterion descriptions', () => {
+  const ok = validBase();
+  ok.criteria[0].description = '설명\n둘째 줄';
+  assert.deepEqual(validateData(ok), []);
+  const bad = validBase();
+  bad.criteria[0].description = 42;
+  assert.ok(validateData(bad).join('\n').includes('criteria[0].description'));
+});
+
+test('descriptions survive export then import', () => {
+  const data = validBase();
+  data.criteria[1].description = '두 번째 기준 설명';
+  assert.deepEqual(parseImportJson(exportJson(data)).data, data);
+});

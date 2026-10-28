@@ -79,11 +79,27 @@ export function applyPreset(preset) {
   return {
     version: 1,
     subjects: preset.subjects.map((name, i) => ({ id: `s${i + 1}`, name })),
-    criteria: preset.criteria.map((name, i) => ({ id: `c${i + 1}`, name })),
+    criteria: preset.criteria.map(({ name, description }, i) => ({
+      id: `c${i + 1}`,
+      name,
+      ...(description ? { description } : {}),
+    })),
     placements: {},
   };
 }
 
 export function setAllowPreview(data, allowed) {
   return { ...data, settings: { ...data.settings, allowPreview: allowed } };
+}
+
+export function setDescription(data, criterionId, text) {
+  const trimmed = text.trim();
+  return {
+    ...data,
+    criteria: data.criteria.map((criterion) => {
+      if (criterion.id !== criterionId) return criterion;
+      const { description: _old, ...rest } = criterion;
+      return trimmed === '' ? rest : { ...rest, description: trimmed };
+    }),
+  };
 }

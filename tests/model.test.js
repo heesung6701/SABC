@@ -17,6 +17,7 @@ import {
   setPlacement,
   applyPreset,
   setAllowPreview,
+  setDescription,
 } from '../web/js/model.js';
 import { PRESETS } from '../web/js/presets.js';
 
@@ -140,4 +141,31 @@ test('other edits keep the preview option', () => {
 
 test('applyPreset starts with preview off', () => {
   assert.equal(applyPreset(PRESETS[0]).settings?.allowPreview ?? false, false);
+});
+
+test('setDescription trims, and removes the key when blank', () => {
+  const described = setDescription(base(), 'c1', '  설명  ');
+  assert.equal(described.criteria[0].description, '설명');
+  const cleared = setDescription(described, 'c1', '   ');
+  assert.equal('description' in cleared.criteria[0], false);
+});
+
+test('hiring preset is first, has five described criteria and no subjects', () => {
+  assert.equal(PRESETS[0].id, 'hiring');
+  const data = applyPreset(PRESETS[0]);
+  assert.deepEqual(data.criteria.map((c) => c.name), [
+    '직무 이해도',
+    '문제 해결 능력 및 역량',
+    '협업과 조율',
+    '의사소통 능력',
+    '동기 및 성장 가능성',
+  ]);
+  assert.ok(data.criteria.every((c) => typeof c.description === 'string' && c.description.length > 0));
+  assert.equal(data.subjects.length, 0);
+  assert.deepEqual(validateData(data), []);
+});
+
+test('applyPreset leaves out the description key for criteria without one', () => {
+  const data = applyPreset(PRESETS.find((p) => p.id === 'sample'));
+  assert.ok(data.criteria.every((c) => !('description' in c)));
 });

@@ -1,7 +1,7 @@
 import { TIERS, TIER_POINTS, validatePoints, parseImportJson, exportJson, parseNames, emptyData } from './core.js';
 import {
   addSubjects, addCriteria, renameSubject, renameCriterion, removeSubject, removeCriterion,
-  moveCriterion, setPoints, applyPreset, setAllowPreview,
+  moveCriterion, setPoints, applyPreset, setAllowPreview, setDescription,
 } from './model.js';
 import { PRESETS } from './presets.js';
 import { createApp, el, renderNav } from './ui-common.js';
@@ -118,6 +118,13 @@ createApp((data, commit, current) => {
       extras: (criterion) => [
         el('button', { onclick: () => apply((d) => moveCriterion(d, criterion.id, -1)) }, '↑'),
         el('button', { onclick: () => apply((d) => moveCriterion(d, criterion.id, 1)) }, '↓'),
+        el('textarea', {
+          class: 'desc-input',
+          placeholder: '기준 설명 (선택)',
+          value: criterion.description ?? '',
+          'aria-label': `${criterion.name} 설명`,
+          onchange: (event) => apply((d) => setDescription(d, criterion.id, event.target.value), { repaint: false }),
+        }),
         pointsEditor(criterion, apply),
       ],
     }),

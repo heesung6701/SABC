@@ -49,3 +49,6 @@ textarea { width: 100%; min-height: 60px; margin-bottom: 6px; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; }
 td.tier { color: #111; font-weight: bold; text-align: center; }
+
+.desc { white-space: pre-line; color: var(--muted); margin: 0 0 12px; }
+.desc-input { flex-basis: 100%; min-height: 48px; margin: 0; }

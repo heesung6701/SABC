@@ -104,6 +104,9 @@ export function validateData(data) {
       if (typeof item.name !== 'string' || item.name.trim() === '') {
         errors.push(`${path}.name: 비어 있지 않은 문자열이어야 합니다`);
       }
+      if (key === 'criteria' && item.description !== undefined && typeof item.description !== 'string') {
+        errors.push(`${path}.description: 문자열이어야 합니다`);
+      }
       if (key === 'criteria' && item.points !== undefined) {
         const message = validatePoints(item.points);
         if (message) errors.push(`${path}.points: ${message}`);
