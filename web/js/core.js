@@ -1,5 +1,5 @@
 export const TIERS = ['S', 'A', 'B', 'C'];
-export const TIER_POINTS = { S: 4, A: 3, B: 2, C: 1 };
+export const TIER_POINTS = { S: 30, A: 20, B: 15, C: 10 };
 
 export function emptyData() {
   return { version: 1, subjects: [], criteria: [], placements: {} };
