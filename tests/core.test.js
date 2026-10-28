@@ -7,6 +7,10 @@ import {
   validatePoints,
   computeResults,
   progress,
+  validateData,
+  parseImportJson,
+  exportJson,
+  parseNames,
 } from '../web/js/core.js';
 
 const cases = JSON.parse(
@@ -87,4 +91,74 @@ test('20 subjects x 6 criteria all get a rank', () => {
   assert.equal(result.status, 'ready');
   assert.equal(result.rows.length, 20);
   assert.ok(result.rows.every((r) => r.rank >= 1 && r.rank <= 20));
+});
+
+const validBase = () => structuredClone(byName('ranking-1-1-3').data);
+
+test('validateData accepts valid data', () => {
+  assert.deepEqual(validateData(validBase()), []);
+});
+
+test('validateData reports the location of each problem', () => {
+  const mutations = [
+    ['version', (d) => { d.version = 2; }],
+    ['subjects', (d) => { d.subjects[1].id = 's1'; }],
+    ['subjects[0].name', (d) => { d.subjects[0].name = ''; }],
+    ['criteria', (d) => { d.criteria[1].id = 'c1'; }],
+    ['criteria[0].points', (d) => { d.criteria[0].points = { S: 1, A: 1, B: 0, C: 0 }; }],
+    ['placements.c9', (d) => { d.placements.c9 = {}; }],
+    ['placements.c1.s9', (d) => { d.placements.c1.s9 = 'S'; }],
+    ['placements.c1.s1', (d) => { d.placements.c1.s1 = 'X'; }],
+  ];
+  for (const [path, mutate] of mutations) {
+    const data = validBase();
+    mutate(data);
+    const errors = validateData(data);
+    assert.ok(errors.length > 0, `${path}: no errors`);
+    assert.ok(errors.join('\n').includes(path), `${path}: got ${errors.join(' | ')}`);
+  }
+});
+
+test('validateData never throws on garbage', () => {
+  for (const garbage of [null, [], 'x', 42, {}, { version: 1, subjects: {} }]) {
+    const errors = validateData(garbage);
+    assert.ok(Array.isArray(errors) && errors.length > 0, JSON.stringify(garbage));
+  }
+});
+
+test('validateData rejects a __proto__ placements key without polluting', () => {
+  const data = JSON.parse('{"version":1,"subjects":[],"criteria":[],"placements":{"__proto__":{"x":"S"}}}');
+  assert.ok(validateData(data).length > 0);
+  assert.equal({}.x, undefined);
+});
+
+test('parseImportJson reports broken JSON', () => {
+  const result = parseImportJson('{broken');
+  assert.equal(result.data, null);
+  assert.ok(result.errors[0].includes('JSON'));
+});
+
+test('parseImportJson returns data for valid text and errors for invalid data', () => {
+  const good = validBase();
+  assert.deepEqual(parseImportJson(JSON.stringify(good)), { data: good, errors: [] });
+  const bad = parseImportJson(JSON.stringify({ ...good, version: 9 }));
+  assert.equal(bad.data, null);
+  assert.ok(bad.errors.length > 0);
+});
+
+test('export then import keeps data and results', () => {
+  const { data } = byName('per-criterion-points');
+  const { data: imported, errors } = parseImportJson(exportJson(data));
+  assert.deepEqual(errors, []);
+  assert.deepEqual(imported, data);
+  assert.deepEqual(computeResults(imported), computeResults(data));
+});
+
+test('exportJson is indented for hand editing', () => {
+  assert.ok(exportJson(validBase()).includes('\n  "version"'));
+});
+
+test('parseNames splits on newlines and commas', () => {
+  assert.deepEqual(parseNames('가, 나\n다\n\n  라  ,'), ['가', '나', '다', '라']);
+  assert.deepEqual(parseNames(''), []);
 });

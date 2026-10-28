@@ -67,3 +67,85 @@ export function progress(data, criterionId) {
   const placed = data.subjects.filter((s) => TIERS.includes(placements[s.id])).length;
   return { placed, total: data.subjects.length };
 }
+
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+export function validateData(data) {
+  if (!isObject(data)) return ['data: 객체여야 합니다'];
+  const errors = [];
+  if (data.version !== 1) errors.push('version: 1이어야 합니다');
+
+  const ids = { subjects: new Set(), criteria: new Set() };
+  for (const key of ['subjects', 'criteria']) {
+    if (!Array.isArray(data[key])) {
+      errors.push(`${key}: 배열이어야 합니다`);
+      continue;
+    }
+    data[key].forEach((item, i) => {
+      const path = `${key}[${i}]`;
+      if (!isObject(item)) {
+        errors.push(`${path}: 객체여야 합니다`);
+        return;
+      }
+      if (typeof item.id !== 'string' || item.id === '') {
+        errors.push(`${path}.id: 비어 있지 않은 문자열이어야 합니다`);
+      } else if (ids[key].has(item.id)) {
+        errors.push(`${path}.id: 중복된 id입니다 (${item.id})`);
+      } else {
+        ids[key].add(item.id);
+      }
+      if (typeof item.name !== 'string' || item.name.trim() === '') {
+        errors.push(`${path}.name: 비어 있지 않은 문자열이어야 합니다`);
+      }
+      if (key === 'criteria' && item.points !== undefined) {
+        const message = validatePoints(item.points);
+        if (message) errors.push(`${path}.points: ${message}`);
+      }
+    });
+  }
+
+  if (!isObject(data.placements)) {
+    errors.push('placements: 객체여야 합니다');
+    return errors;
+  }
+  for (const [criterionId, byCriterion] of Object.entries(data.placements)) {
+    if (!ids.criteria.has(criterionId)) {
+      errors.push(`placements.${criterionId}: 존재하지 않는 기준입니다`);
+      continue;
+    }
+    if (!isObject(byCriterion)) {
+      errors.push(`placements.${criterionId}: 객체여야 합니다`);
+      continue;
+    }
+    for (const [subjectId, tier] of Object.entries(byCriterion)) {
+      if (!ids.subjects.has(subjectId)) {
+        errors.push(`placements.${criterionId}.${subjectId}: 존재하지 않는 대상자입니다`);
+      } else if (!TIERS.includes(tier)) {
+        errors.push(`placements.${criterionId}.${subjectId}: 티어는 S/A/B/C 중 하나여야 합니다`);
+      }
+    }
+  }
+  return errors;
+}
+
+export function parseImportJson(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    return { data: null, errors: [`JSON 형식이 올바르지 않습니다: ${error.message}`] };
+  }
+  const errors = validateData(parsed);
+  return errors.length > 0 ? { data: null, errors } : { data: parsed, errors: [] };
+}
+
+export function exportJson(data) {
+  return JSON.stringify(data, null, 2);
+}
+
+export function parseNames(text) {
+  return text
+    .split(/[\n,]+/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
