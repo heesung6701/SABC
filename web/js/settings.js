@@ -22,7 +22,7 @@ function download(filename, text) {
   URL.revokeObjectURL(url);
 }
 
-function pointsEditor(criterion, data, apply) {
+function pointsEditor(criterion, apply) {
   const inputs = TIERS.map((tier) =>
     el('input', {
       type: 'number', min: '0', step: 'any',
@@ -33,18 +33,18 @@ function pointsEditor(criterion, data, apply) {
   );
   const save = () => {
     const raw = inputs.map((input) => input.value.trim());
-    if (raw.every((v) => v === '')) return apply(setPoints(data, criterion.id, null));
+    if (raw.every((v) => v === '')) return apply((d) => setPoints(d, criterion.id, null));
     if (raw.some((v) => v === '')) return report(['S/A/B/C를 모두 입력하거나 모두 비워 주세요']);
     const points = Object.fromEntries(TIERS.map((tier, i) => [tier, Number(raw[i])]));
     const error = validatePoints(points);
     if (error) return report([`${criterion.name}: ${error}`]);
-    return apply(setPoints(data, criterion.id, points));
+    return apply((d) => setPoints(d, criterion.id, points));
   };
   return el(
     'div', { class: 'points' },
     ...TIERS.flatMap((tier, i) => [el('span', {}, tier), inputs[i]]),
     el('button', { onclick: save }, '점수 적용'),
-    el('button', { onclick: () => apply(setPoints(data, criterion.id, null)) }, '기본으로'),
+    el('button', { onclick: () => apply((d) => setPoints(d, criterion.id, null)) }, '기본으로'),
   );
 }
 
@@ -54,7 +54,14 @@ function listSection(title, items, { rename, remove, addMany, extras }) {
     'section', {},
     el('h2', {}, title),
     ...items.map((item, index) => {
-      const input = el('input', { type: 'text', value: item.name, 'aria-label': `${title} 이름`, onchange: () => rename(item.id, input.value) });
+      const input = el('input', { type: 'text', value: item.name, 'aria-label': `${title} 이름`, onchange: () => {
+        if (input.value.trim() === '') {
+          input.value = item.name;
+          return;
+        }
+        rename(item.id, input.value);
+      },
+    });
       return el(
         'div', { class: 'item' },
         input,
@@ -67,12 +74,11 @@ function listSection(title, items, { rename, remove, addMany, extras }) {
   );
 }
 
-createApp((data, commit) => {
-  const apply = (next) => { report([]); commit(next); };
+createApp((data, commit, current) => {
+  const apply = (next, options) => { report([]); commit(next, options); };
 
   const presetSelect = el('select', { 'aria-label': 'preset' }, ...PRESETS.map((p) => el('option', { value: p.id }, p.name)));
-  const hasData = data.subjects.length > 0 || data.criteria.length > 0;
-  const fileInput = el('input', {
+    const fileInput = el('input', {
     type: 'file', accept: 'application/json,.json',
     onchange: async () => {
       const file = fileInput.files[0];
@@ -94,31 +100,32 @@ createApp((data, commit) => {
       el('h2', {}, 'Preset'),
       el('div', { class: 'row-actions' }, presetSelect, el('button', {
         onclick: () => {
-          if (hasData && !confirm('현재 데이터를 교체하고 배치를 초기화합니다. 계속할까요?')) return;
+          const now = current();
+          if ((now.subjects.length > 0 || now.criteria.length > 0) && !confirm('현재 데이터를 교체하고 배치를 초기화합니다. 계속할까요?')) return;
           apply(applyPreset(PRESETS.find((p) => p.id === presetSelect.value)));
         },
       }, '불러오기')),
     ),
     listSection('대상자', data.subjects, {
-      rename: (id, name) => apply(renameSubject(data, id, name)),
-      remove: (id) => apply(removeSubject(data, id)),
-      addMany: (names) => apply(addSubjects(data, names)),
+      rename: (id, name) => apply((d) => renameSubject(d, id, name), { repaint: false }),
+      remove: (id) => apply((d) => removeSubject(d, id)),
+      addMany: (names) => apply((d) => addSubjects(d, names)),
     }),
     listSection('기준', data.criteria, {
-      rename: (id, name) => apply(renameCriterion(data, id, name)),
-      remove: (id) => apply(removeCriterion(data, id)),
-      addMany: (names) => apply(addCriteria(data, names)),
+      rename: (id, name) => apply((d) => renameCriterion(d, id, name), { repaint: false }),
+      remove: (id) => apply((d) => removeCriterion(d, id)),
+      addMany: (names) => apply((d) => addCriteria(d, names)),
       extras: (criterion) => [
-        el('button', { onclick: () => apply(moveCriterion(data, criterion.id, -1)) }, '↑'),
-        el('button', { onclick: () => apply(moveCriterion(data, criterion.id, 1)) }, '↓'),
-        pointsEditor(criterion, data, apply),
+        el('button', { onclick: () => apply((d) => moveCriterion(d, criterion.id, -1)) }, '↑'),
+        el('button', { onclick: () => apply((d) => moveCriterion(d, criterion.id, 1)) }, '↓'),
+        pointsEditor(criterion, apply),
       ],
     }),
     el(
       'section', {},
       el('h2', {}, 'JSON'),
       el('div', { class: 'row-actions' },
-        el('button', { onclick: () => download('tier-eval.json', exportJson(data)) }, '내보내기'),
+        el('button', { onclick: () => download('tier-eval.json', exportJson(current())) }, '내보내기'),
         el('label', {}, '가져오기 ', fileInput),
       ),
       el('p', { class: 'muted' }, '내보낸 파일을 직접 고쳐서 다시 가져올 수 있습니다. 가져오면 현재 데이터를 교체합니다.'),
