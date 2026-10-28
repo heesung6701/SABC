@@ -16,7 +16,8 @@
 
 ## 2. M1 기술 방식
 
-- 페이지: `settings.html`, `evaluate.html`, `result.html` + 공용 JS.
+- 페이지: `index.html`(평가, 메인), `result.html`, `settings.html` + 공용 JS.
+- 디자인 시스템: 당근 SEED(`@seed-design/css` 3.0.3)의 `all.min.css`를 jsDelivr CDN에서 링크한다 (빌드 없음, 버전 고정). 컴포넌트는 SEED 클래스 규칙(`seed-<컴포넌트>__<슬롯>--<변형>`)을 `ui-common.js`의 헬퍼(`btn`, `textInput`, `callout`, `switchControl`, `tabList`)로만 만든다. 색·간격·글자는 `--seed-*` 토큰을 쓰고 `style.css`에는 SEED에 없는 배치와 티어 색만 둔다. 인터넷 연결이 없으면 스타일이 적용되지 않는다 (필요하면 CSS 파일을 저장소에 복사해 서빙).
 - 드래그: 브라우저 기본 HTML5 드래그 앤 드롭 (별도 라이브러리 없음).
 - CSV 일괄 등록: 줄바꿈/쉼표 구분 텍스트를 파싱하는 작은 함수. 라이브러리 없음.
 - JSON 내보내기: 데이터 전체를 `Blob` + 다운로드 링크로 저장. JSON 가져오기: `<input type="file">`로 읽어 `core.js`의 검증 함수를 통과해야 교체한다 (`version`, id 중복, 존재하지 않는 대상자/기준을 가리키는 배치, 티어 값 확인). 실패하면 오류 위치를 보여주고 기존 데이터는 그대로 둔다.
@@ -27,11 +28,12 @@
 **파일 구조 (제안)**
 ```
 web/
-  settings.html  evaluate.html  result.html
+  index.html  result.html  settings.html   # index.html이 평가 화면
   js/core.js     # 점수·순위·잠금·JSON 검증 (순수 함수)
   js/store.js    # localStorage 읽기/쓰기
   js/presets.js  # 내장 preset (샘플, 빈 구성)
-  js/ui-*.js     # 페이지별 화면 코드
+  js/ui-common.js  # DOM 헬퍼, SEED 컴포넌트 헬퍼, 머리글/탭, 앱 껍데기
+  js/settings.js  js/evaluate.js  js/result.js   # 페이지별 화면 코드
 tests/
   core.test.js           # 프레임워크 없는 Node 스크립트
   fixtures/scoring.json  # 입력 → 기대 점수/순위

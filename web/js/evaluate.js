@@ -1,16 +1,24 @@
 import { TIERS, progress } from './core.js';
 import { setPlacement } from './model.js';
-import { createApp, el, renderNav } from './ui-common.js';
+import { btnLink, callout, createApp, el, renderHeader, tabList } from './ui-common.js';
 
 let currentCriterionId = null;
 
 createApp((data, commit) => {
-  const page = el('div', {}, renderNav('evaluate'), el('h1', {}, '평가'));
+  const header = renderHeader('evaluate');
   if (data.subjects.length === 0 || data.criteria.length === 0) {
-    page.append(
-      el('p', {}, '설정 페이지에서 대상자와 기준을 먼저 입력하세요. ', el('a', { href: 'settings.html' }, '설정으로 이동')),
+    return el(
+      'div',
+      { class: 'page' },
+      header,
+      el('div', { class: 'page-head' }, el('h1', {}, '평가')),
+      el(
+        'div',
+        { class: 'stack' },
+        callout('informative', '먼저 대상자와 기준을 설정해 주세요', '설정에서 preset으로 바로 시작하거나 직접 입력할 수 있어요.'),
+        el('div', {}, btnLink('설정으로 가기', 'settings.html')),
+      ),
     );
-    return page;
   }
 
   const criterion = data.criteria.find((c) => c.id === currentCriterionId) ?? data.criteria[0];
@@ -26,7 +34,7 @@ createApp((data, commit) => {
       subject.name,
     );
     if (tierOf(subject) !== null) {
-      node.append(el('b', { title: '풀로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
+      node.append(el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
     }
     return node;
   };
@@ -48,19 +56,42 @@ createApp((data, commit) => {
     return node;
   };
 
-  const { placed, total } = progress(data, criterion.id);
-  page.append(
+  const perCriterion = data.criteria.map((c) => ({ c, ...progress(data, c.id) }));
+  const totalCells = perCriterion.reduce((sum, p) => sum + p.total, 0);
+  const placedCells = perCriterion.reduce((sum, p) => sum + p.placed, 0);
+  const current = perCriterion.find((p) => p.c.id === criterion.id);
+  const done = placedCells === totalCells;
+  const percent = totalCells === 0 ? 0 : Math.round((placedCells / totalCells) * 100);
+
+  return el(
+    'div',
+    { class: 'page' },
+    header,
     el(
       'div',
-      { class: 'tabs' },
-      ...data.criteria.map((c) =>
-        el('button', { class: c.id === criterion.id ? 'on' : '', onclick: () => { currentCriterionId = c.id; commit(data); } }, c.name),
+      { class: 'page-head' },
+      el('div', { class: 'grow' }, el('h1', {}, '평가'), el('p', { class: 'muted' }, `전체 ${placedCells}/${totalCells} 배치`)),
+      btnLink(done ? '결과 보기' : '결과 미리 보기', 'result.html', { variant: done ? 'brandSolid' : 'neutralWeak' }),
+    ),
+    el('div', { class: 'progress', role: 'progressbar', 'aria-valuenow': String(percent), 'aria-valuemin': '0', 'aria-valuemax': '100' }, el('span', { style: `width:${percent}%` })),
+    el(
+      'div',
+      { class: 'criteria-tabs' },
+      tabList(
+        perCriterion.map(({ c, placed, total }) => ({
+          key: c.id,
+          label: `${c.name} ${placed}/${total}`,
+          onclick: () => {
+            currentCriterionId = c.id;
+            commit(data);
+          },
+        })),
+        criterion.id,
       ),
     ),
     ...(criterion.description ? [el('p', { class: 'desc' }, criterion.description)] : []),
-    el('p', { class: 'muted' }, `진행률 ${placed}/${total}`),
-    ...TIERS.map((tier) => el('div', { class: 'row' }, el('div', { class: `label tier-${tier}` }, tier), zone(tier))),
-    el('div', { class: 'pool' }, el('p', { class: 'muted' }, '미배치'), zone(null)),
+    el('p', { class: 'muted' }, `${criterion.name} · ${current.placed}/${current.total} 배치 — 대상자를 끌어서 티어에 놓으세요`),
+    el('div', { class: 'board' }, ...TIERS.map((tier) => el('div', { class: 'tier-row' }, el('div', { class: `label tier-${tier}` }, tier), zone(tier)))),
+    el('div', { class: 'pool-box' }, el('p', { class: 'muted' }, '미배치'), zone(null)),
   );
-  return page;
 });

@@ -2,6 +2,7 @@ export const PRESETS = [
   {
     id: 'hiring',
     name: '채용 평가 기준',
+    summary: '기준 5개(설명 포함) · 지원자는 직접 입력',
     subjects: [],
     criteria: [
       {
@@ -29,8 +30,9 @@ export const PRESETS = [
   {
     id: 'sample',
     name: '샘플 (가상 데이터)',
+    summary: '가상 대상자 10명 · 기준 4개 · 써 보기용',
     subjects: Array.from({ length: 10 }, (_, i) => `후보 ${i + 1}`),
     criteria: ['참신성', '실현 가능성', '시장성', '완성도'].map((name) => ({ name })),
   },
-  { id: 'empty', name: '빈 구성', subjects: [], criteria: [] },
+  { id: 'empty', name: '빈 구성', summary: '처음부터 직접 입력', subjects: [], criteria: [] },
 ];
