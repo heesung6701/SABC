@@ -56,20 +56,18 @@ function importControl(apply) {
   return [btn('JSON 파일 가져오기', { onclick: () => input.click() }), input];
 }
 
-function presetList(apply, current, label) {
+// 시작 안내(데이터가 없을 때만 보임): 빈 구성은 지금 상태 그대로라 목록에서 뺀다
+function presetList(apply) {
   return el(
     'div',
     { class: 'list' },
-    ...PRESETS.map((preset) =>
+    ...PRESETS.filter((preset) => preset.id !== 'empty').map((preset) =>
       el(
         'div',
         { class: 'seed-list-item__root' },
         el('div', { class: 'seed-list-item__content' }, el('div', { class: 'seed-list-item__title' }, preset.name), el('div', { class: 'seed-list-item__detail' }, preset.summary)),
-        el('div', { class: 'seed-list-item__suffix' }, btn(label, {
+        el('div', { class: 'seed-list-item__suffix' }, btn('시작하기', {
           onclick: () => {
-            const now = current();
-            const hasData = now.subjects.length > 0 || now.criteria.length > 0;
-            if (hasData && !confirm('현재 데이터를 교체하고 배치를 초기화합니다. 계속할까요?')) return;
             activeTab = preset.criteria.length > 0 && preset.subjects.length === 0 ? 'subjects' : activeTab;
             apply(applyPreset(preset));
           },
@@ -314,12 +312,11 @@ function dataPanel(data, apply, current) {
       el('p', { class: 'muted' }, '대상자, 기준, 점수표, 배치를 JSON 파일로 저장하거나 불러와요. 파일을 직접 고쳐서 다시 가져와도 돼요. 가져오면 현재 데이터를 교체합니다.'),
       el('div', { class: 'row wrap' }, btn('JSON 내보내기', { variant: 'neutralSolid', onclick: () => download('tier-eval.json', exportJson(current())) }), ...importControl(apply)),
     ),
-    el('section', { class: 'card' }, el('h2', {}, '다른 구성으로 바꾸기'), el('p', { class: 'muted' }, '불러오면 현재 대상자·기준·배치가 바뀌어요.'), presetList(apply, current, '불러오기')),
     el(
       'section',
       { class: 'card' },
       el('h2', {}, '초기화'),
-      el('p', { class: 'muted' }, '대상자, 기준, 배치, 옵션을 모두 지워요. 먼저 내보내기로 백업해 두세요.'),
+      el('p', { class: 'muted' }, '대상자, 기준, 배치, 옵션을 모두 지우고 처음 시작 화면으로 돌아가요. 먼저 내보내기로 백업해 두세요.'),
       el('div', {}, btn('데이터 초기화', { variant: 'criticalSolid', onclick: () => confirm('모든 데이터를 지웁니다. 계속할까요?') && apply(emptyData()) })),
     ),
   );
@@ -359,7 +356,7 @@ createApp((data, commit, current) => {
     ),
     messageBox,
     isEmpty
-      ? el('section', { class: 'card start' }, el('h2', {}, '어떻게 시작할까요?'), presetList(apply, current, '시작하기'), el('div', { class: 'row wrap' }, ...importControl(apply)))
+      ? el('section', { class: 'card start' }, el('h2', {}, '어떻게 시작할까요?'), presetList(apply), el('div', { class: 'row wrap' }, ...importControl(apply)))
       : null,
     el('div', { class: 'section-tabs' }, tabList(
       TABS.map(([key, label]) => ({
