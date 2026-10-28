@@ -1,4 +1,4 @@
-# 티어 평가 서비스 기술 문서 (Milestone 1)
+# SABC 기술 문서 (Milestone 1)
 
 작성일: 2026-10-28 · 상태: 초안 (승인 대기)
 관련 문서: [PRD.md](PRD.md) (무엇을·왜) · [next-features/](next-features/README.md) (M1 이후 feature별 기술 방식은 각 feature 문서에 있다)

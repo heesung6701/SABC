@@ -1,4 +1,4 @@
-# 티어 평가 서비스 PRD (Milestone 1)
+# SABC PRD (Milestone 1)
 
 작성일: 2026-10-28 · 상태: 초안 (승인 대기)
 관련 문서: [TECH.md](TECH.md) (M1 기술 방식) · [next-features/](next-features/README.md) (M1 이후 feature별 문서)

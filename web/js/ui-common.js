@@ -138,7 +138,7 @@ export function renderHeader(active) {
   return el(
     'header',
     { class: 'app-header' },
-    el('div', { class: 'brand' }, '티어 평가'),
+    el('div', { class: 'brand' }, 'SABC'),
     el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(PAGES, active, { nav: true })),
   );
 }
