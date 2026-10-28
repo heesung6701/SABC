@@ -39,7 +39,10 @@ a.seed-tabs__trigger { text-decoration: none; }
 .card { border: 1px solid var(--seed-color-stroke-neutral-weak); border-radius: var(--seed-radius-r4); padding: var(--seed-dimension-x4); display: flex; flex-direction: column; gap: var(--seed-dimension-x3); background: var(--seed-color-bg-layer-default); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--seed-dimension-x2); }
 .start { background: var(--seed-color-bg-brand-weak); border-color: var(--seed-color-stroke-brand-weak); }
-.preset-item { display: flex; align-items: center; gap: var(--seed-dimension-x3); padding: var(--seed-dimension-x3); background: var(--seed-color-bg-layer-default); border: 1px solid var(--seed-color-stroke-neutral-weak); border-radius: var(--seed-radius-r3); }
+.list > .seed-list-item__root { padding-inline: 0; }
+.list > .seed-list-item__root + .seed-list-item__root { border-top: 1px solid var(--seed-color-stroke-neutral-weak); }
+.seed-list-item__root { display: flex; align-items: center; justify-content: space-between; gap: var(--seed-dimension-x3); }
+.seed-list-item__content { display: flex; flex-direction: column; min-width: 0; }
 .item-title { font-weight: var(--seed-font-weight-bold); }
 
 a.is-link { text-decoration: none; }
@@ -85,3 +88,5 @@ th { background: var(--seed-color-bg-neutral-subtle); font-weight: var(--seed-fo
 tr:last-child td { border-bottom: 0; }
 td.tier { color: #111; font-weight: var(--seed-font-weight-bold); text-align: center; }
 td.num { font-variant-numeric: tabular-nums; }
+.seed-switchmark__root { display: inline-flex; flex: none; }
+.seed-switchmark__thumb { display: block; }

@@ -51,6 +51,17 @@ export function textInput({ value = '', placeholder, label, multiline = false, t
   return root;
 }
 
+// 라벨 + 입력 + 도움말을 SEED Field로 묶는다
+export function field(label, control, description) {
+  return el(
+    'div',
+    { class: 'seed-field__root' },
+    el('div', { class: 'seed-field__header' }, el('span', { class: 'seed-field-label__root seed-field-label__root--weight_medium' }, label)),
+    control,
+    description ? el('div', { class: 'seed-field__description' }, description) : null,
+  );
+}
+
 export function callout(tone, title, ...description) {
   return el(
     'div',
@@ -65,16 +76,16 @@ export function callout(tone, title, ...description) {
 }
 
 export function switchControl({ checked, label, description, onToggle }) {
-  const mark = (name) => `seed-switchmark__${name} seed-switchmark__${name}--tone_brand seed-switchmark__${name}--size_24`;
+  const mark = (name) => `seed-switchmark__${name} seed-switchmark__${name}--tone_brand seed-switchmark__${name}--size_32`;
   const flag = checked ? { 'data-checked': '' } : {};
   return el(
     'button',
-    { type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(checked), onclick: () => onToggle(!checked) },
+    { type: 'button', class: 'seed-switch__root seed-switch__root--size_32 switch-row', role: 'switch', 'aria-checked': String(checked), onclick: () => onToggle(!checked) },
     el(
       'span',
       { class: 'switch-text' },
-      el('span', { class: 'switch-title' }, label),
-      description ? el('span', { class: 'muted' }, description) : null,
+      el('span', { class: 'seed-switch__label seed-switch__label--size_32' }, label),
+      description ? el('span', { class: 'seed-list-item__detail' }, description) : null,
     ),
     el('span', { class: mark('root'), ...flag }, el('span', { class: mark('thumb'), ...flag })),
   );
@@ -103,12 +114,16 @@ export function tabList(items, activeKey, { nav = false } = {}) {
     indicator,
   );
   // 선택된 탭 아래로 밑줄을 옮긴다 (SEED는 위치를 CSS 변수로 받는다)
-  requestAnimationFrame(() => {
+  const place = () => {
     const selected = list.querySelector('[data-selected]');
     if (!selected) return;
     indicator.style.setProperty('--indicator-left', `${selected.offsetLeft}px`);
     indicator.style.setProperty('--indicator-width', `${selected.offsetWidth}px`);
-  });
+  };
+  // 글꼴이 로드되거나 창 크기가 바뀌면 탭 폭이 달라지므로 그때마다 다시 맞춘다
+  requestAnimationFrame(place);
+  const observer = new ResizeObserver(place);
+  list.querySelectorAll('.seed-tabs__trigger').forEach((trigger) => observer.observe(trigger));
   return list;
 }
 

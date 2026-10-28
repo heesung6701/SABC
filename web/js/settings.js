@@ -4,7 +4,7 @@ import {
   removeCriterion, moveCriterion, setPoints, setDescription, applyPreset, setAllowPreview,
 } from './model.js';
 import { PRESETS } from './presets.js';
-import { btn, btnLink, callout, createApp, el, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
+import { btn, btnLink, callout, createApp, el, field, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
 
 const TABS = [
   ['subjects', '대상자'],
@@ -59,13 +59,13 @@ function importControl(apply) {
 function presetList(apply, current, label) {
   return el(
     'div',
-    { class: 'stack' },
+    { class: 'list' },
     ...PRESETS.map((preset) =>
       el(
         'div',
-        { class: 'preset-item' },
-        el('div', { class: 'grow' }, el('div', { class: 'item-title' }, preset.name), el('div', { class: 'muted' }, preset.summary)),
-        btn(label, {
+        { class: 'seed-list-item__root' },
+        el('div', { class: 'seed-list-item__content' }, el('div', { class: 'seed-list-item__title' }, preset.name), el('div', { class: 'seed-list-item__detail' }, preset.summary)),
+        el('div', { class: 'seed-list-item__suffix' }, btn(label, {
           onclick: () => {
             const now = current();
             const hasData = now.subjects.length > 0 || now.criteria.length > 0;
@@ -73,7 +73,7 @@ function presetList(apply, current, label) {
             activeTab = preset.criteria.length > 0 && preset.subjects.length === 0 ? 'subjects' : activeTab;
             apply(applyPreset(preset));
           },
-        }),
+        })),
       ),
     ),
   );
@@ -236,7 +236,7 @@ function criterionCard(criterion, index, total, apply, refresh) {
         onclick: () => confirm(`'${criterion.name}'을(를) 삭제하고 관련 배치도 지웁니다. 계속할까요?`) && apply((d) => removeCriterion(d, criterion.id)),
       }),
     ),
-    descField,
+    field('설명', descField),
     el(
       'div',
       { class: 'card-head' },
