@@ -1,0 +1,368 @@
+[
+  {
+    "name": "ranking-1-1-3",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        },
+        {
+          "id": "s3",
+          "name": "다"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        },
+        {
+          "id": "c2",
+          "name": "기준2"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "S",
+          "s2": "A",
+          "s3": "B"
+        },
+        "c2": {
+          "s1": "B",
+          "s2": "A",
+          "s3": "S"
+        }
+      }
+    },
+    "expected": {
+      "status": "ready",
+      "missing": 0,
+      "rows": [
+        {
+          "subjectId": "s1",
+          "total": 6,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s3",
+          "total": 6,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s2",
+          "total": 6,
+          "sCount": 0,
+          "rank": 3
+        }
+      ]
+    }
+  },
+  {
+    "name": "tiebreak-by-s-count",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        },
+        {
+          "id": "c2",
+          "name": "기준2"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "S",
+          "s2": "B"
+        },
+        "c2": {
+          "s1": "C",
+          "s2": "A"
+        }
+      }
+    },
+    "expected": {
+      "status": "ready",
+      "missing": 0,
+      "rows": [
+        {
+          "subjectId": "s1",
+          "total": 5,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s2",
+          "total": 5,
+          "sCount": 0,
+          "rank": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "per-criterion-points",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1",
+          "points": {
+            "S": 10,
+            "A": 5,
+            "B": 2,
+            "C": 0
+          }
+        },
+        {
+          "id": "c2",
+          "name": "기준2"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "A",
+          "s2": "S"
+        },
+        "c2": {
+          "s1": "S",
+          "s2": "C"
+        }
+      }
+    },
+    "expected": {
+      "status": "ready",
+      "missing": 0,
+      "rows": [
+        {
+          "subjectId": "s2",
+          "total": 11,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s1",
+          "total": 9,
+          "sCount": 1,
+          "rank": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "locked",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "S"
+        }
+      }
+    },
+    "expected": {
+      "status": "locked",
+      "missing": 1,
+      "rows": []
+    }
+  },
+  {
+    "name": "empty-no-subjects",
+    "data": {
+      "version": 1,
+      "subjects": [],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {}
+    },
+    "expected": {
+      "status": "empty",
+      "missing": 0,
+      "rows": []
+    }
+  },
+  {
+    "name": "empty-no-criteria",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [],
+      "placements": {}
+    },
+    "expected": {
+      "status": "empty",
+      "missing": 0,
+      "rows": []
+    }
+  },
+  {
+    "name": "decimal-tie",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "가"
+        },
+        {
+          "id": "s2",
+          "name": "나"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1",
+          "points": {
+            "S": 0.3,
+            "A": 0.2,
+            "B": 0.1,
+            "C": 0
+          }
+        },
+        {
+          "id": "c2",
+          "name": "기준2",
+          "points": {
+            "S": 0.3,
+            "A": 0.2,
+            "B": 0.1,
+            "C": 0
+          }
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "A",
+          "s2": "S"
+        },
+        "c2": {
+          "s1": "B",
+          "s2": "C"
+        }
+      }
+    },
+    "expected": {
+      "status": "ready",
+      "missing": 0,
+      "rows": [
+        {
+          "subjectId": "s2",
+          "total": 0.3,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s1",
+          "total": 0.3,
+          "sCount": 0,
+          "rank": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "duplicate-names",
+    "data": {
+      "version": 1,
+      "subjects": [
+        {
+          "id": "s1",
+          "name": "같은이름"
+        },
+        {
+          "id": "s2",
+          "name": "같은이름"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "c1",
+          "name": "기준1"
+        }
+      ],
+      "placements": {
+        "c1": {
+          "s1": "A",
+          "s2": "S"
+        }
+      }
+    },
+    "expected": {
+      "status": "ready",
+      "missing": 0,
+      "rows": [
+        {
+          "subjectId": "s2",
+          "total": 4,
+          "sCount": 1,
+          "rank": 1
+        },
+        {
+          "subjectId": "s1",
+          "total": 3,
+          "sCount": 0,
+          "rank": 2
+        }
+      ]
+    }
+  }
+]
