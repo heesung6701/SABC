@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { emptyData } from '../web/js/core.js';
-import { STORAGE_KEY, createStore } from '../web/js/store.js';
+import { STORAGE_KEY, BACKUP_KEY, createStore } from '../web/js/store.js';
 
 const sample = JSON.parse(
   readFileSync(new URL('./fixtures/scoring.json', import.meta.url), 'utf-8'),
@@ -66,4 +66,31 @@ test('clear removes the key', () => {
   store.save(sample);
   store.clear();
   assert.equal(storage.map.has(STORAGE_KEY), false);
+});
+
+test('unreadable saved data is reported and backed up before anything overwrites it', () => {
+  for (const raw of ['{x', JSON.stringify({ ...sample, version: 9 })]) {
+    const storage = fakeStorage();
+    storage.map.set(STORAGE_KEY, raw);
+    const store = createStore(storage);
+    assert.deepEqual(store.load(), emptyData());
+    assert.equal(store.loadFailed, true);
+    assert.equal(storage.map.get(BACKUP_KEY), raw);
+  }
+});
+
+test('missing saved data is not a load failure', () => {
+  const store = createStore(fakeStorage());
+  store.load();
+  assert.equal(store.loadFailed, false);
+});
+
+test('a later successful load clears the failure flag', () => {
+  const storage = fakeStorage();
+  storage.map.set(STORAGE_KEY, '{x');
+  const store = createStore(storage);
+  store.load();
+  store.save(sample);
+  store.load();
+  assert.equal(store.loadFailed, false);
 });

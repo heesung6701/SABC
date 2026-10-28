@@ -1,6 +1,7 @@
 import { emptyData, validateData } from './core.js';
 
 export const STORAGE_KEY = 'tier-eval-v1';
+export const BACKUP_KEY = 'tier-eval-v1-backup';
 
 // storage를 생략하면 브라우저 localStorage를 쓴다. 접근 자체가 막혀 있으면 저장소 없음(null)으로 취급한다.
 function resolveStorage(storage) {
@@ -14,16 +15,30 @@ function resolveStorage(storage) {
 
 export function createStore(storage) {
   const target = resolveStorage(storage);
+  let loadFailed = false;
   return {
+    // 읽을 수 없는 저장 데이터는 빈 데이터로 시작하되, 덮어쓰기 전에 원본을 백업 키에 남긴다.
     load() {
+      loadFailed = false;
+      let raw = null;
       try {
-        const raw = target?.getItem(STORAGE_KEY);
-        if (raw == null) return emptyData();
+        raw = target?.getItem(STORAGE_KEY) ?? null;
+        if (raw === null) return emptyData();
         const data = JSON.parse(raw);
-        return validateData(data).length === 0 ? data : emptyData();
+        if (validateData(data).length === 0) return data;
       } catch {
-        return emptyData();
+        // 읽기 실패나 깨진 JSON은 아래에서 같은 방식으로 처리한다
       }
+      loadFailed = true;
+      try {
+        if (raw !== null) target.setItem(BACKUP_KEY, raw);
+      } catch {
+        // 백업도 못 하면 어쩔 수 없다
+      }
+      return emptyData();
+    },
+    get loadFailed() {
+      return loadFailed;
     },
     save(data) {
       try {
