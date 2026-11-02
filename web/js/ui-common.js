@@ -177,8 +177,13 @@ export function openNewEvaluationDialog() {
       btn('+ 기준 추가', { variant: 'ghost', size: 'small', onclick: () => { rows.push({ name: '' }); drawCriteria(); } }),
     );
   };
+  let autoName = ''; // 마지막으로 자동 입력한 이름. 사용자가 고친 이름은 덮어쓰지 않는다.
   const fill = () => {
     const t = templates.find((x) => x.key === select.value);
+    if (nameInput.control.value.trim() === autoName) {
+      autoName = t.key === 'preset:empty' ? '' : t.label; // 빈 평가는 비워 둬서 자동 이름(평가 N) 사용
+      nameInput.control.value = autoName;
+    }
     hint.textContent = t.hint;
     subjectsInput.control.value = t.source.subjects.join('\n');
     rows = t.source.criteria.map((c) => ({ ...c }));
