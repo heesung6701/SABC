@@ -68,9 +68,9 @@ a.is-link { text-decoration: none; }
 
 .progress { height: 6px; border-radius: var(--seed-radius-full); background: var(--seed-color-bg-neutral-weak); overflow: hidden; }
 .progress > span { display: block; height: 100%; background: var(--seed-color-bg-brand-solid); transition: width 0.2s; }
-.board { display: flex; flex-direction: column; gap: var(--seed-dimension-x1); margin-top: var(--seed-dimension-x4); }
+.board { position: relative; display: flex; flex-direction: column; gap: var(--seed-dimension-x1); margin-top: var(--seed-dimension-x4); }
 .tier-row { display: flex; min-height: 64px; border-radius: var(--seed-radius-r3); overflow: hidden; }
-.label { width: 64px; flex: none; display: flex; align-items: center; justify-content: center; font-size: var(--seed-font-size-t9); font-weight: var(--seed-font-weight-bold); color: #111; }
+.label { border: 0; cursor: pointer; width: 64px; flex: none; display: flex; align-items: center; justify-content: center; font-size: var(--seed-font-size-t9); font-weight: var(--seed-font-weight-bold); color: #111; }
 .zone { flex: 1; display: flex; flex-wrap: wrap; gap: var(--seed-dimension-x1_5); padding: var(--seed-dimension-x2); background: var(--seed-color-bg-neutral-weak); align-content: flex-start; min-height: 56px; }
 .zone.over { outline: 2px dashed var(--seed-color-stroke-brand-solid); outline-offset: -2px; background: var(--seed-color-bg-brand-weak); }
 .pool-box { margin-top: var(--seed-dimension-x5); }
@@ -105,3 +105,5 @@ td.num { font-variant-numeric: tabular-nums; }
 .chip .adj-value.on { color: var(--seed-color-fg-brand); }
 .chip.expanded { padding-block: var(--seed-dimension-x2); padding-inline: var(--seed-dimension-x4); font-size: 1.1em; border-color: var(--seed-color-stroke-brand-solid); box-shadow: 0 0 0 2px var(--seed-color-bg-brand-weak); }
 .chip.expanded .adj { width: 1.75rem; height: 1.75rem; }
+.tier-pop { position: absolute; left: 72px; right: 0; z-index: 10; white-space: pre-line; padding: var(--seed-dimension-x3) var(--seed-dimension-x4); background: var(--seed-color-bg-layer-default); border: 1px solid var(--seed-color-stroke-neutral-weak); border-radius: var(--seed-radius-r3); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12); }
+.tier-pop[hidden] { display: none; }

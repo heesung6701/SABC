@@ -219,8 +219,8 @@ function criterionCard(criterion, index, total, apply, refresh) {
   });
   const rubricBox = el(
     'details',
-    { class: 'rubric', open: Object.keys(criterion.rubric ?? {}).length > 0 },
-    el('summary', {}, '티어별 설명 (선택)'),
+    { class: 'rubric', open: true },
+    el('summary', {}, '티어별 설명 (선택) — 평가 화면에서 S/A/B/C를 누르면 보여요'),
     el('div', { class: 'stack' }, ...rubricFields),
   );
 

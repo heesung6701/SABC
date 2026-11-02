@@ -3,8 +3,56 @@ import { setAdjustment, setPlacement } from './model.js';
 import { btnLink, callout, createApp, el, renderHeader, tabList } from './ui-common.js';
 
 let currentCriterionId = null;
+let repaintController = null;
+// 화면을 다시 그릴 때 이전 말풍선의 document 리스너를 걷는다
+function abortOnRepaint() {
+  repaintController?.abort();
+  repaintController = new AbortController();
+  return repaintController.signal;
+}
 const expandedChips = new Set(); // 펼친 칩 `기준id:대상자id`. 다시 그려도 유지
 const LONG_PRESS_MS = 500;
+
+// 티어 라벨(S/A/B/C)을 누르면 그 기준의 티어 설명을 말풍선으로 보여준다. 바깥을 누르거나 다시 누르면 닫힌다.
+function tierBoard(criterion, zone) {
+  const pop = el('div', { class: 'tier-pop', role: 'status', hidden: true });
+  let openTier = null;
+  const close = () => { openTier = null; pop.hidden = true; };
+  const board = el(
+    'div',
+    { class: 'board' },
+    ...TIERS.map((tier) => {
+      const row = el('div', { class: 'tier-row' });
+      const label = el(
+        'button',
+        {
+          type: 'button',
+          class: `label tier-${tier}`,
+          'aria-label': `${tier} 티어 설명 보기`,
+          onclick: (e) => {
+            e.stopPropagation();
+            if (openTier === tier) return close();
+            openTier = tier;
+            const text = criterion.rubric?.[tier];
+            pop.replaceChildren(
+              el('b', { class: `tier-pill tier-${tier}` }, tier),
+              ' ',
+              text ? text : el('span', { class: 'muted' }, `${criterion.name}의 ${tier} 설명이 아직 없어요. 설정 > 기준에서 적을 수 있어요.`),
+            );
+            pop.style.top = `${row.offsetTop + row.offsetHeight + 4}px`;
+            pop.hidden = false;
+          },
+        },
+        tier,
+      );
+      row.append(label, zone(tier));
+      return row;
+    }),
+    pop,
+  );
+  document.addEventListener('click', (e) => { if (!pop.contains(e.target)) close(); }, { signal: abortOnRepaint() });
+  return board;
+}
 
 createApp((data, commit) => {
   const header = renderHeader('evaluate');
@@ -138,7 +186,7 @@ createApp((data, commit) => {
         ]
       : []),
     el('p', { class: 'muted' }, `${criterion.name} · ${current.placed}/${current.total} 배치 — 대상자를 끌어서 티어에 놓으세요`),
-    el('div', { class: 'board' }, ...TIERS.map((tier) => el('div', { class: 'tier-row' }, el('div', { class: `label tier-${tier}`, title: criterion.rubric?.[tier] }, tier), zone(tier)))),
+    tierBoard(criterion, zone),
     el('div', { class: 'pool-box' }, el('p', { class: 'muted' }, '미배치'), zone(null)),
   );
 });
