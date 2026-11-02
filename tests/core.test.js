@@ -196,3 +196,14 @@ test('descriptions survive export then import', () => {
   data.criteria[1].description = '두 번째 기준 설명';
   assert.deepEqual(parseImportJson(exportJson(data)).data, data);
 });
+
+test('rubric: optional, validated, kept through export/import', () => {
+  const base = { version: 1, subjects: [], criteria: [{ id: 'c1', name: 'x' }], placements: {} };
+  assert.deepEqual(validateData(base), []);
+  const withRubric = { ...base, criteria: [{ id: 'c1', name: 'x', rubric: { S: '최고', A: '좋음' } }] };
+  assert.deepEqual(validateData(withRubric), []);
+  assert.deepEqual(parseImportJson(exportJson(withRubric)).data, withRubric);
+  assert.ok(validateData({ ...base, criteria: [{ id: 'c1', name: 'x', rubric: { S: 1 } }] }).length > 0);
+  assert.ok(validateData({ ...base, criteria: [{ id: 'c1', name: 'x', rubric: { Z: 'a' } }] }).length > 0);
+  assert.ok(validateData({ ...base, criteria: [{ id: 'c1', name: 'x', rubric: 'a' }] }).length > 0);
+});

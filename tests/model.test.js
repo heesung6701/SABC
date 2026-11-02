@@ -169,3 +169,15 @@ test('applyPreset leaves out the description key for criteria without one', () =
   const data = applyPreset(PRESETS.find((p) => p.id === 'sample'));
   assert.ok(data.criteria.every((c) => !('description' in c)));
 });
+
+test('setRubric sets, trims, clears a tier and drops empty rubric', async () => {
+  const { setRubric, applyPreset } = await import('../web/js/model.js');
+  const { exportCriteriaJson, parseCriteriaJson } = await import('../web/js/core.js');
+  let d = applyPreset({ subjects: [], criteria: [{ name: 'a', rubric: { S: '굿' } }] });
+  assert.deepEqual(d.criteria[0].rubric, { S: '굿' });
+  d = setRubric(d, 'c1', 'A', '  보통  ');
+  assert.deepEqual(d.criteria[0].rubric, { S: '굿', A: '보통' });
+  assert.deepEqual(parseCriteriaJson(exportCriteriaJson(d)).criteria[0].rubric, { S: '굿', A: '보통' });
+  d = setRubric(setRubric(d, 'c1', 'S', ''), 'c1', 'A', '');
+  assert.equal('rubric' in d.criteria[0], false);
+});

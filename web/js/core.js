@@ -121,6 +121,15 @@ export function validateData(data) {
       if (key === 'criteria' && item.description !== undefined && typeof item.description !== 'string') {
         errors.push(`${path}.description: 문자열이어야 합니다`);
       }
+      if (key === 'criteria' && item.rubric !== undefined) {
+        if (!isObject(item.rubric)) errors.push(`${path}.rubric: 객체여야 합니다`);
+        else {
+          for (const [tier, text] of Object.entries(item.rubric)) {
+            if (!TIERS.includes(tier)) errors.push(`${path}.rubric.${tier}: S/A/B/C 중 하나여야 합니다`);
+            else if (typeof text !== 'string') errors.push(`${path}.rubric.${tier}: 문자열이어야 합니다`);
+          }
+        }
+      }
       if (key === 'criteria' && item.points !== undefined) {
         const message = validatePoints(item.points);
         if (message) errors.push(`${path}.points: ${message}`);
@@ -296,7 +305,7 @@ export function importSheetCsv(data, text) {
 // ---- 평가 기준 JSON (이름·설명·점수표만. 대상자와 배치는 빠진다) ----
 
 export function exportCriteriaJson(data) {
-  return JSON.stringify({ version: 1, criteria: data.criteria.map(({ name, description, points }) => ({ name, ...(description ? { description } : {}), ...(points ? { points } : {}) })) }, null, 2);
+  return JSON.stringify({ version: 1, criteria: data.criteria.map(({ name, description, points, rubric }) => ({ name, ...(description ? { description } : {}), ...(points ? { points } : {}), ...(rubric ? { rubric } : {}) })) }, null, 2);
 }
 
 export function parseCriteriaJson(text) {

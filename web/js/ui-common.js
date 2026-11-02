@@ -156,7 +156,7 @@ export function newEvaluationForm({ onCancel } = {}) {
       key: `eval:${e.id}`,
       label: `복사: ${e.name}`,
       hint: '대상자와 기준을 가져오고 배치는 비워요',
-      source: { subjects: e.data.subjects.map((s) => s.name), criteria: e.data.criteria.map(({ name, description, points }) => ({ name, description, points })) },
+      source: { subjects: e.data.subjects.map((s) => s.name), criteria: e.data.criteria.map(({ name, description, points, rubric }) => ({ name, description, points, rubric })) },
     })),
   ];
   const defaultKey = PRESETS.some((p) => p.id === 'empty') ? 'preset:empty' : templates[0].key;

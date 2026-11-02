@@ -98,8 +98,18 @@ createApp((data, commit) => {
       ),
     ),
     ...(criterion.description ? [el('p', { class: 'desc' }, criterion.description)] : []),
+    ...(TIERS.some((tier) => criterion.rubric?.[tier])
+      ? [
+          el(
+            'details',
+            { class: 'rubric' },
+            el('summary', {}, '티어 설명'),
+            ...TIERS.filter((tier) => criterion.rubric[tier]).map((tier) => el('p', { class: 'desc' }, el('b', { class: `tier-pill tier-${tier}` }, tier), ' ', criterion.rubric[tier])),
+          ),
+        ]
+      : []),
     el('p', { class: 'muted' }, `${criterion.name} · ${current.placed}/${current.total} 배치 — 대상자를 끌어서 티어에 놓으세요`),
-    el('div', { class: 'board' }, ...TIERS.map((tier) => el('div', { class: 'tier-row' }, el('div', { class: `label tier-${tier}` }, tier), zone(tier)))),
+    el('div', { class: 'board' }, ...TIERS.map((tier) => el('div', { class: 'tier-row' }, el('div', { class: `label tier-${tier}`, title: criterion.rubric?.[tier] }, tier), zone(tier)))),
     el('div', { class: 'pool-box' }, el('p', { class: 'muted' }, '미배치'), zone(null)),
   );
 });

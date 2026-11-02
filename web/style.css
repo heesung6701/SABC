@@ -100,3 +100,5 @@ td.num { font-variant-numeric: tabular-nums; }
 .chip .adj { margin-left: var(--seed-dimension-x1); padding: 0 var(--seed-dimension-x1_5); border: 0; background: none; cursor: pointer; color: var(--seed-color-fg-neutral-subtle); }
 .chip .adj:disabled { opacity: 0.3; cursor: not-allowed; }
 .chip .adj-value { min-width: 1.5em; display: inline-block; text-align: center; font-size: 0.85em; color: var(--seed-color-fg-neutral-subtle); }
+.rubric summary { cursor: pointer; color: var(--seed-color-fg-neutral-muted); }
+.rubric > .desc { margin-top: var(--seed-dimension-x2); }

@@ -1,7 +1,7 @@
 import { TIERS, TIER_POINTS, pointsFor, validatePoints, parseImportJson, exportJson, parseNames, emptyData, exportSheetCsv, importSheetCsv, exportCriteriaJson, parseCriteriaJson } from './core.js';
 import {
   addSubject, addSubjects, addCriterion, addCriteria, renameSubject, renameCriterion, removeSubject,
-  removeCriterion, moveCriterion, replaceCriteria, setPoints, setDescription, applyPreset, setAllowPreview,
+  removeCriterion, moveCriterion, replaceCriteria, setPoints, setDescription, setRubric, applyPreset, setAllowPreview,
 } from './model.js';
 import { PRESETS } from './presets.js';
 import { btn, btnLink, callout, createApp, el, field, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
@@ -207,6 +207,23 @@ function criterionCard(criterion, index, total, apply, refresh) {
     onchange: () => apply((d) => setDescription(d, criterion.id, descField.control.value), { repaint: false }),
   });
 
+  const rubricFields = TIERS.map((tier) => {
+    const input = textInput({
+      value: criterion.rubric?.[tier] ?? '',
+      multiline: true,
+      label: `${criterion.name} ${tier} 티어 설명`,
+      placeholder: `${tier}는 어떤 경우인가요? (선택)`,
+      onchange: () => apply((d) => setRubric(d, criterion.id, tier, input.control.value), { repaint: false }),
+    });
+    return el('div', { class: 'point-field' }, el('span', { class: `tier-pill tier-${tier}` }, tier), input);
+  });
+  const rubricBox = el(
+    'details',
+    { class: 'rubric', open: Object.keys(criterion.rubric ?? {}).length > 0 },
+    el('summary', {}, '티어별 설명 (선택)'),
+    el('div', { class: 'stack' }, ...rubricFields),
+  );
+
   const errorSlot = el('div', { hidden: true });
   const showError = (message) => {
     errorSlot.replaceChildren(...(message ? [callout('critical', message)] : []));
@@ -251,6 +268,7 @@ function criterionCard(criterion, index, total, apply, refresh) {
       }),
     ),
     field('설명', descField),
+    rubricBox,
     el(
       'div',
       { class: 'card-head' },

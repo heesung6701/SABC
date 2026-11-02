@@ -96,11 +96,12 @@ export function applyPreset(preset) {
   return {
     version: 1,
     subjects: preset.subjects.map((name, i) => ({ id: `s${i + 1}`, name })),
-    criteria: preset.criteria.map(({ name, description, points }, i) => ({
+    criteria: preset.criteria.map(({ name, description, points, rubric }, i) => ({
       id: `c${i + 1}`,
       name,
       ...(description ? { description } : {}),
       ...(points ? { points } : {}),
+      ...(rubric && Object.keys(rubric).length > 0 ? { rubric } : {}),
     })),
     placements: {},
   };
@@ -118,6 +119,21 @@ export function setDescription(data, criterionId, text) {
       if (criterion.id !== criterionId) return criterion;
       const { description: _old, ...rest } = criterion;
       return trimmed === '' ? rest : { ...rest, description: trimmed };
+    }),
+  };
+}
+
+// 기준의 티어 설명 한 칸을 바꾼다. 비우면 그 칸을 지우고, 다 비면 rubric 필드도 없앤다.
+export function setRubric(data, criterionId, tier, text) {
+  const trimmed = text.trim();
+  return {
+    ...data,
+    criteria: data.criteria.map((criterion) => {
+      if (criterion.id !== criterionId) return criterion;
+      const { rubric = {}, ...rest } = criterion;
+      const { [tier]: _old, ...others } = rubric;
+      const next = trimmed === '' ? others : { ...others, [tier]: trimmed };
+      return Object.keys(next).length === 0 ? rest : { ...rest, rubric: next };
     }),
   };
 }
