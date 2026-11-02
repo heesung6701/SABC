@@ -39,7 +39,7 @@ createApp((data, commit) => {
       const step = (delta) => commit(setAdjustment(data, criterion.id, subject.id, value + delta));
       node.append(
         el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 -${unit}점`, disabled: value <= -MAX_ADJUST, onclick: () => step(-1) }, '−'),
-        el('span', { class: 'adj-value', title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value)),
+        el('span', { class: `adj-value${value !== 0 ? ' on' : ''}`, title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value)),
         el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 +${unit}점`, disabled: value >= MAX_ADJUST, onclick: () => step(1) }, '+'),
       );
       node.append(el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));

@@ -97,8 +97,9 @@ td.num { font-variant-numeric: tabular-nums; }
 .sabc-dialog { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; border: 0; border-radius: var(--seed-radius-r4); padding: var(--seed-dimension-x5); background: var(--seed-color-bg-layer-default); color: var(--seed-color-fg-neutral); }
 .sabc-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
 .seed-tabs__trigger:disabled { opacity: 0.4; cursor: not-allowed; }
-.chip .adj { margin-left: var(--seed-dimension-x1); padding: 0 var(--seed-dimension-x1_5); border: 0; background: none; cursor: pointer; color: var(--seed-color-fg-neutral-subtle); }
+.chip { display: inline-flex; align-items: center; gap: var(--seed-dimension-x1_5); }
+.chip .adj { width: 1.5rem; height: 1.5rem; padding: 0; line-height: 1; font-size: 1rem; border: 1px solid var(--seed-color-stroke-neutral-weak); border-radius: var(--seed-radius-full); background: var(--seed-color-bg-neutral-weak); cursor: pointer; color: var(--seed-color-fg-neutral); }
+.chip .adj:hover:not(:disabled) { background: var(--seed-color-bg-brand-weak); border-color: var(--seed-color-stroke-brand-solid); }
 .chip .adj:disabled { opacity: 0.3; cursor: not-allowed; }
-.chip .adj-value { min-width: 1.5em; display: inline-block; text-align: center; font-size: 0.85em; color: var(--seed-color-fg-neutral-subtle); }
-.rubric summary { cursor: pointer; color: var(--seed-color-fg-neutral-muted); }
-.rubric > .desc { margin-top: var(--seed-dimension-x2); }
+.chip .adj-value { min-width: 1.75em; text-align: center; font-weight: var(--seed-font-weight-bold); font-size: 0.9em; color: var(--seed-color-fg-neutral-subtle); }
+.chip .adj-value.on { color: var(--seed-color-fg-brand); }
