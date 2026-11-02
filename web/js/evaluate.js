@@ -3,6 +3,8 @@ import { setAdjustment, setPlacement } from './model.js';
 import { btnLink, callout, createApp, el, renderHeader, tabList } from './ui-common.js';
 
 let currentCriterionId = null;
+const expandedChips = new Set(); // 펼친 칩 `기준id:대상자id`. 다시 그려도 유지
+const LONG_PRESS_MS = 500;
 
 createApp((data, commit) => {
   const header = renderHeader('evaluate');
@@ -27,22 +29,49 @@ createApp((data, commit) => {
   const tierOf = (subject) => (TIERS.includes(placements[subject.id]) ? placements[subject.id] : null);
   const place = (subjectId, tier) => commit(setPlacement(data, criterion.id, subjectId, tier));
 
+  // 롱클릭(0.5초)으로 칩을 펼치면 −/+ 버튼이 나온다. 접힌 칩은 보정 점수만 보여주고 버튼은 없다.
   const chip = (subject) => {
+    const key = `${criterion.id}:${subject.id}`;
+    const placed = tierOf(subject) !== null;
+    const expanded = placed && expandedChips.has(key);
     const node = el(
       'div',
-      { class: 'chip', draggable: true, ondragstart: (e) => e.dataTransfer.setData('text/plain', subject.id) },
+      { class: `chip${expanded ? ' expanded' : ''}`, draggable: true, ondragstart: (e) => e.dataTransfer.setData('text/plain', subject.id) },
       subject.name,
     );
-    if (tierOf(subject) !== null) {
+    if (placed) {
       const value = adjustmentOf(data, criterion.id, subject.id);
       const unit = Number(adjustmentUnit(criterion).toFixed(4));
       const step = (delta) => commit(setAdjustment(data, criterion.id, subject.id, value + delta));
-      node.append(
-        el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 -${unit}점`, disabled: value <= -MAX_ADJUST, onclick: () => step(-1) }, '−'),
-        el('span', { class: `adj-value${value !== 0 ? ' on' : ''}`, title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value)),
-        el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 +${unit}점`, disabled: value >= MAX_ADJUST, onclick: () => step(1) }, '+'),
-      );
+      const badge = el('span', { class: `adj-value${value !== 0 ? ' on' : ''}`, title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value));
+      if (expanded) {
+        node.append(
+          el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 -${unit}점`, disabled: value <= -MAX_ADJUST, onclick: () => step(-1) }, '−'),
+          badge,
+          el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 +${unit}점`, disabled: value >= MAX_ADJUST, onclick: () => step(1) }, '+'),
+        );
+      } else if (value !== 0) {
+        node.append(badge);
+      }
       node.append(el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
+
+      let timer = null;
+      let origin = null;
+      const cancel = () => { clearTimeout(timer); timer = null; };
+      node.title = expanded ? '길게 눌러 접기' : '길게 눌러 보정(−/+) 펼치기';
+      node.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button, b')) return;
+        origin = { x: e.clientX, y: e.clientY };
+        timer = setTimeout(() => {
+          timer = null;
+          if (expanded) expandedChips.delete(key);
+          else expandedChips.add(key);
+          commit(data);
+        }, LONG_PRESS_MS);
+      });
+      node.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 6) cancel(); });
+      for (const type of ['pointerup', 'pointercancel', 'pointerleave', 'dragstart']) node.addEventListener(type, cancel);
+      node.addEventListener('contextmenu', (e) => e.preventDefault()); // 터치 롱프레스 메뉴 방지
     }
     return node;
   };

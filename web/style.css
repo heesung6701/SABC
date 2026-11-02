@@ -103,3 +103,5 @@ td.num { font-variant-numeric: tabular-nums; }
 .chip .adj:disabled { opacity: 0.3; cursor: not-allowed; }
 .chip .adj-value { min-width: 1.75em; text-align: center; font-weight: var(--seed-font-weight-bold); font-size: 0.9em; color: var(--seed-color-fg-neutral-subtle); }
 .chip .adj-value.on { color: var(--seed-color-fg-brand); }
+.chip.expanded { padding-block: var(--seed-dimension-x2); padding-inline: var(--seed-dimension-x4); font-size: 1.1em; border-color: var(--seed-color-stroke-brand-solid); box-shadow: 0 0 0 2px var(--seed-color-bg-brand-weak); }
+.chip.expanded .adj { width: 1.75rem; height: 1.75rem; }
