@@ -101,6 +101,17 @@ export function switchControl({ checked, label, description, onToggle }) {
   );
 }
 
+const NAV_FROM_KEY = 'sabc-nav-from';
+function takeNavFrom() {
+  try {
+    const raw = sessionStorage.getItem(NAV_FROM_KEY);
+    sessionStorage.removeItem(NAV_FROM_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 // items: { key, label, href?, onclick? }. href가 있으면 링크(페이지 이동), 없으면 버튼(탭 전환).
 export function tabList(items, activeKey, { nav = false } = {}) {
   const indicator = el('span', { class: 'seed-tabs__indicator seed-tabs__indicator--triggerLayout_hug' });
@@ -124,13 +135,43 @@ export function tabList(items, activeKey, { nav = false } = {}) {
     }),
     indicator,
   );
-  // 선택된 탭 아래로 밑줄을 옮긴다 (SEED는 위치를 CSS 변수로 받는다)
+  // 선택된 탭 아래로 밑줄을 옮긴다 (SEED는 위치를 CSS 변수로 받는다).
+  // 화면 이동으로 선택이 바뀐 경우에만 이전 탭 위치에서 미끄러져 오고, 그 외(같은 화면 다시 그리기 등)에는 제자리에 바로 놓는다.
+  const setPos = (left, width) => {
+    indicator.style.setProperty('--indicator-left', `${left}px`);
+    indicator.style.setProperty('--indicator-width', `${width}px`);
+  };
+  let target = null;
   const place = () => {
     const selected = list.querySelector('[data-selected]');
     if (!selected) return;
-    indicator.style.setProperty('--indicator-left', `${selected.offsetLeft}px`);
-    indicator.style.setProperty('--indicator-width', `${selected.offsetWidth}px`);
+    const next = { left: selected.offsetLeft, width: selected.offsetWidth };
+    if (target && target.left === next.left && target.width === next.width) return;
+    const first = target === null;
+    target = next;
+    const from = first && nav ? takeNavFrom() : null;
+    indicator.style.transition = 'none';
+    if (from && from.key !== activeKey) {
+      setPos(from.left, from.width);
+      void indicator.offsetWidth; // 시작 위치를 먼저 반영
+      indicator.style.transition = '';
+      setPos(next.left, next.width);
+    } else {
+      setPos(next.left, next.width);
+      void indicator.offsetWidth;
+      indicator.style.transition = '';
+    }
   };
+  if (nav) {
+    // 다른 화면으로 이동하기 직전의 밑줄 위치를 넘겨준다
+    list.addEventListener('click', (e) => {
+      const link = e.target.closest('a[href]');
+      const selected = list.querySelector('[data-selected]');
+      if (link && selected && !link.hasAttribute('data-selected')) {
+        sessionStorage.setItem(NAV_FROM_KEY, JSON.stringify({ key: activeKey, left: selected.offsetLeft, width: selected.offsetWidth }));
+      }
+    });
+  }
   // 글꼴이 로드되거나 창 크기가 바뀌면 탭 폭이 달라지므로 그때마다 다시 맞춘다
   requestAnimationFrame(place);
   const observer = new ResizeObserver(place);
@@ -311,7 +352,7 @@ export function renderHeader(active) {
   return el(
     'header',
     { class: 'app-header' },
-    el('div', { class: 'brand' }, 'SABC'),
+    el('a', { class: 'brand', href: 'index.html', 'aria-label': 'SABC 평가 화면으로' }, 'SABC'),
     none ? el('div') : el(
       'div',
       { class: 'row' },

@@ -23,7 +23,7 @@ a { color: var(--seed-color-fg-brand); }
 .wrap { flex-wrap: wrap; }
 
 .app-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--seed-dimension-x2); padding-top: var(--seed-dimension-x4); }
-.brand { font-size: var(--seed-font-size-t6); font-weight: var(--seed-font-weight-bold); color: var(--seed-color-fg-brand); }
+.brand { text-decoration: none; font-size: var(--seed-font-size-t6); font-weight: var(--seed-font-weight-bold); color: var(--seed-color-fg-brand); }
 .app-nav { flex: 1; display: flex; justify-content: flex-end; min-width: 0; }
 a.seed-tabs__trigger { text-decoration: none; }
 .seed-tabs__list { position: relative; }
