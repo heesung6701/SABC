@@ -235,7 +235,7 @@ function criterionCard(criterion, index, total, apply, refresh) {
       type: 'number', min: '0', step: 'any',
       label: `${criterion.name} ${tier} 점수`,
       placeholder: String(TIER_POINTS[tier]),
-      value: criterion.points?.[tier] !== undefined ? String(criterion.points[tier]) : '',
+      value: String(pointsFor(criterion)[tier]), // 기본 점수표를 쓰는 기준도 현재 값을 채워 둔다
     }),
   );
   const savePoints = () => {
@@ -250,7 +250,8 @@ function criterionCard(criterion, index, total, apply, refresh) {
     const error = validatePoints(points);
     if (error) return showError(error);
     openPoints.delete(criterion.id);
-    return apply((d) => setPoints(d, criterion.id, points));
+    // 기본 점수표와 같으면 이 기준만의 점수표로 저장하지 않는다
+    return apply((d) => setPoints(d, criterion.id, TIERS.every((t) => points[t] === TIER_POINTS[t]) ? null : points));
   };
 
   return el(
