@@ -138,12 +138,12 @@ export function switchEvaluation(ws, id) {
   return ws.evaluations.some((e) => e.id === id) ? { ...ws, activeId: id } : ws;
 }
 
-// 마지막 하나는 지울 수 없다. 활성 평가를 지우면 앞 평가(없으면 다음)로 옮긴다.
+// 활성 평가를 지우면 앞 평가(없으면 다음)로 옮긴다. 전부 지우면 activeId는 null.
 export function removeEvaluation(ws, id) {
   const index = ws.evaluations.findIndex((e) => e.id === id);
-  if (index < 0 || ws.evaluations.length === 1) return ws;
+  if (index < 0) return ws;
   const evaluations = ws.evaluations.filter((e) => e.id !== id);
-  const activeId = ws.activeId === id ? evaluations[Math.max(0, index - 1)].id : ws.activeId;
+  const activeId = ws.activeId !== id ? ws.activeId : (evaluations[Math.max(0, index - 1)]?.id ?? null);
   return { ...ws, activeId, evaluations };
 }
 

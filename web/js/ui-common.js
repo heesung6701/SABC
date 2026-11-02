@@ -191,7 +191,7 @@ export function openNewEvaluationDialog() {
   };
   fill();
 
-  const dialog = el('dialog', { class: 'sabc-dialog', 'aria-label': '새 평가' });
+  const dialog = el('dialog', { class: 'sabc-dialog new-eval-dialog', 'aria-label': '새 평가' });
   const create = () => {
     const criteria = rows.map((r) => ({ ...r, name: (r.name ?? '').trim(), description: (r.description ?? '').trim() })).filter((r) => r.name !== '');
     const data = applyPreset({ subjects: parseNames(subjectsInput.control.value), criteria });
@@ -215,6 +215,29 @@ export function openNewEvaluationDialog() {
   document.body.append(dialog);
   dialog.showModal();
   nameInput.control.focus();
+}
+
+// 삭제 확인: 경고를 보여주고 평가 이름을 똑같이 입력해야 지운다.
+function confirmDeleteEvaluation(e, onConfirm) {
+  const dialog = el('dialog', { class: 'sabc-dialog', 'aria-label': '평가 삭제' });
+  const typed = textInput({ label: '평가 이름 확인', placeholder: e.name, onchange: () => sync() });
+  const remove = btn('삭제', { variant: 'criticalSolid', disabled: true, onclick: () => { dialog.close(); onConfirm(); } });
+  const sync = () => { remove.disabled = typed.control.value !== e.name; };
+  typed.control.addEventListener('input', sync);
+  dialog.append(
+    el(
+      'div',
+      { class: 'stack' },
+      el('h2', {}, '평가 삭제'),
+      callout('critical', `'${e.name}'을(를) 삭제합니다`, '대상자, 기준, 점수표, 배치, 옵션이 모두 사라지고 되돌릴 수 없어요. 필요하면 먼저 설정에서 JSON으로 내보내 백업하세요.'),
+      field(`삭제하려면 평가 이름 "${e.name}"을(를) 그대로 입력하세요`, typed),
+      el('div', { class: 'row end' }, btn('취소', { onclick: () => dialog.close() }), remove),
+    ),
+  );
+  dialog.addEventListener('close', () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+  typed.control.focus();
 }
 
 // "평가 목록" 팝업: 이름 변경, 이동, 순서, 삭제. 평가가 바뀔 때마다 목록을 다시 그린다.
@@ -247,8 +270,11 @@ export function openEvaluationsDialog() {
             btn('↑', { variant: 'ghost', disabled: i === 0, title: '위로', onclick: () => act(() => evaluations.move(e.id, -1)) }),
             btn('↓', { variant: 'ghost', disabled: i === list.length - 1, title: '아래로', onclick: () => act(() => evaluations.move(e.id, 1)) }),
             btn('삭제', {
-              variant: 'ghost', danger: true, disabled: list.length === 1, title: list.length === 1 ? '마지막 평가는 지울 수 없어요' : undefined,
-              onclick: () => confirm(`'${e.name}'과(와) 그 안의 모든 데이터를 삭제합니다. 계속할까요?`) && act(() => evaluations.remove(e.id)),
+              variant: 'ghost', danger: true,
+              onclick: () => confirmDeleteEvaluation(e, () => {
+                if (list.length === 1) dialog.close(); // 마지막 평가: 목록 팝업을 닫으면 평가 만들기 화면이 뜬다
+                act(() => evaluations.remove(e.id));
+              }),
             }),
           );
         }),
@@ -294,7 +320,7 @@ export function renderHeader(active) {
 export function createApp(render) {
   const root = document.getElementById('app');
   let ws = store.load();
-  let data = activeEvaluation(ws).data;
+  let data = activeEvaluation(ws)?.data ?? null;
   let loadFailed = store.loadFailed;
   let saveFailed = false;
 
@@ -310,13 +336,19 @@ export function createApp(render) {
     if (saveFailed) {
       notices.push(callout('critical', '저장에 실패했습니다', 'JSON 내보내기로 백업하세요.'));
     }
+    if (data === null) {
+      // 평가가 하나도 없으면 평가 만들기 화면을 띄운다
+      root.replaceChildren(...notices, el('div', { class: 'page' }, renderHeader(''), el('section', { class: 'card start' }, el('h2', {}, '평가가 없어요'), btn('+ 새 평가 만들기', { variant: 'brandSolid', onclick: openNewEvaluationDialog }))));
+      if (!document.querySelector('.new-eval-dialog')) openNewEvaluationDialog();
+      return;
+    }
     root.replaceChildren(...notices, render(data, commit, current));
   }
 
   // 워크스페이스 전체를 바꾸는 변경(평가 추가/이동/삭제 등)
   function commitWorkspace(fn) {
     ws = fn(ws);
-    data = activeEvaluation(ws).data;
+    data = activeEvaluation(ws)?.data ?? null;
     saveFailed = !store.save(ws);
     if (!saveFailed) loadFailed = false;
     paint();
@@ -344,7 +376,7 @@ export function createApp(render) {
   // 뒤로 가기(bfcache)로 돌아오거나 다른 탭이 저장하면 메모리의 낡은 데이터를 버리고 다시 읽는다.
   function reload() {
     ws = store.load();
-    data = activeEvaluation(ws).data;
+    data = activeEvaluation(ws)?.data ?? null;
     loadFailed = store.loadFailed;
     paint();
   }

@@ -33,9 +33,13 @@ test('switch, rename, move', () => {
   assert.equal(moveEvaluation(ws, 'e1', 1), ws);
 });
 
-test('removeEvaluation keeps at least one and re-points the active id', () => {
+test('removeEvaluation re-points the active id and allows removing all', () => {
   const one = emptyWorkspace();
-  assert.equal(removeEvaluation(one, 'e1'), one);
+  const none = removeEvaluation(one, 'e1');
+  assert.deepEqual(none, { version: 2, activeId: null, evaluations: [] });
+  assert.deepEqual(validateWorkspace(none), []);
+  assert.equal(activeEvaluation(none), undefined);
+  assert.equal(addEvaluation(none, 'N').activeId, 'e1');
   let ws = addEvaluation(addEvaluation(one, 'B'), 'C'); // active e3
   ws = removeEvaluation(ws, 'e3');
   assert.equal(ws.activeId, 'e2');

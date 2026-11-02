@@ -178,10 +178,9 @@ export function validateWorkspace(ws) {
   if (!isObject(ws)) return ['workspace: 객체여야 합니다'];
   const errors = [];
   if (ws.version !== 2) errors.push('version: 2여야 합니다');
-  if (!Array.isArray(ws.evaluations) || ws.evaluations.length === 0) {
-    errors.push('evaluations: 1개 이상의 배열이어야 합니다');
-    return errors;
-  }
+  if (!Array.isArray(ws.evaluations)) return [...errors, 'evaluations: 배열이어야 합니다'];
+  // 평가를 모두 지운 상태: 목록이 비어 있고 activeId가 null
+  if (ws.evaluations.length === 0) return ws.activeId === null ? errors : [...errors, 'activeId: 평가가 없으면 null이어야 합니다'];
   const ids = new Set();
   ws.evaluations.forEach((ev, i) => {
     const path = `evaluations[${i}]`;
