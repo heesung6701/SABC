@@ -107,3 +107,5 @@ td.num { font-variant-numeric: tabular-nums; }
 .chip.expanded .adj { width: 1.75rem; height: 1.75rem; }
 .tier-pop { position: absolute; left: 72px; right: 0; z-index: 10; white-space: pre-line; padding: var(--seed-dimension-x3) var(--seed-dimension-x4); background: var(--seed-color-bg-layer-default); border: 1px solid var(--seed-color-stroke-neutral-weak); border-radius: var(--seed-radius-r3); box-shadow: 0 4px 16px rgb(0 0 0 / 0.12); }
 .tier-pop[hidden] { display: none; }
+.icon { display: inline-flex; vertical-align: middle; }
+.app-header .icon { color: var(--seed-color-fg-neutral-muted); }
