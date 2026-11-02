@@ -77,51 +77,52 @@ createApp((data, commit) => {
   const tierOf = (subject) => (TIERS.includes(placements[subject.id]) ? placements[subject.id] : null);
   const place = (subjectId, tier) => commit(setPlacement(data, criterion.id, subjectId, tier));
 
-  // 롱클릭(0.5초)으로 칩을 펼치면 −/+ 버튼이 나온다. 접힌 칩은 보정 점수만 보여주고 버튼은 없다.
+  // 롱클릭(0.5초)이나 더블클릭으로 칩을 펼치면 −/+ 버튼이 나온다. 접힌 칩은 0이 아닌 보정 점수만 보여준다.
+  // 버튼과 점수는 항상 DOM에 두고 CSS 너비 전환으로 접고 펼친다 (다시 그리지 않아야 애니메이션이 보인다).
   const chip = (subject) => {
     const key = `${criterion.id}:${subject.id}`;
     const placed = tierOf(subject) !== null;
-    const expanded = placed && expandedChips.has(key);
+    let expanded = placed && expandedChips.has(key);
     const node = el(
       'div',
       { class: `chip${expanded ? ' expanded' : ''}`, draggable: true, ondragstart: (e) => e.dataTransfer.setData('text/plain', subject.id) },
       subject.name,
     );
-    if (placed) {
-      const value = adjustmentOf(data, criterion.id, subject.id);
-      const unit = Number(adjustmentUnit(criterion).toFixed(4));
-      const step = (delta) => commit(setAdjustment(data, criterion.id, subject.id, value + delta));
-      const badge = el('span', { class: `adj-value${value !== 0 ? ' on' : ''}`, title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value));
-      if (expanded) {
-        node.append(
-          el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 -${unit}점`, disabled: value <= -MAX_ADJUST, onclick: () => step(-1) }, '−'),
-          badge,
-          el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 +${unit}점`, disabled: value >= MAX_ADJUST, onclick: () => step(1) }, '+'),
-        );
-      } else if (value !== 0) {
-        node.append(badge);
-      }
-      node.append(el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
+    if (!placed) return node;
 
-      const toggle = () => {
-        if (expanded) expandedChips.delete(key);
-        else expandedChips.add(key);
-        commit(data);
-      };
-      node.addEventListener('dblclick', (e) => { if (!e.target.closest('button, b')) { cancel(); toggle(); } }); // 더블클릭/더블탭도 같은 토글
-      let timer = null;
-      let origin = null;
-      const cancel = () => { clearTimeout(timer); timer = null; };
+    const value = adjustmentOf(data, criterion.id, subject.id);
+    const unit = Number(adjustmentUnit(criterion).toFixed(4));
+    const step = (delta) => commit(setAdjustment(data, criterion.id, subject.id, value + delta));
+    const minus = el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 -${unit}점`, disabled: value <= -MAX_ADJUST, onclick: () => step(-1) }, '−');
+    const badge = el('span', { class: `adj-value${value !== 0 ? ' on' : ' zero'}`, title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value));
+    const plus = el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 +${unit}점`, disabled: value >= MAX_ADJUST, onclick: () => step(1) }, '+');
+    node.append(minus, badge, plus, el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
+
+    const sync = () => {
+      node.classList.toggle('expanded', expanded);
+      minus.inert = plus.inert = !expanded; // 접힌 버튼은 탭 이동·클릭 대상에서 뺀다
       node.title = expanded ? '길게 누르거나 더블클릭하면 접기' : '길게 누르거나 더블클릭하면 보정(−/+) 펼치기';
-      node.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('button, b')) return;
-        origin = { x: e.clientX, y: e.clientY };
-        timer = setTimeout(() => { timer = null; toggle(); }, LONG_PRESS_MS);
-      });
-      node.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 6) cancel(); });
-      for (const type of ['pointerup', 'pointercancel', 'pointerleave', 'dragstart']) node.addEventListener(type, cancel);
-      node.addEventListener('contextmenu', (e) => e.preventDefault()); // 터치 롱프레스 메뉴 방지
-    }
+    };
+    const toggle = () => {
+      expanded = !expanded;
+      if (expanded) expandedChips.add(key);
+      else expandedChips.delete(key);
+      sync();
+    };
+    sync();
+
+    let timer = null;
+    let origin = null;
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    node.addEventListener('dblclick', (e) => { if (!e.target.closest('button, b')) { cancel(); toggle(); } });
+    node.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, b')) return;
+      origin = { x: e.clientX, y: e.clientY };
+      timer = setTimeout(() => { timer = null; toggle(); }, LONG_PRESS_MS);
+    });
+    node.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 6) cancel(); });
+    for (const type of ['pointerup', 'pointercancel', 'pointerleave', 'dragstart']) node.addEventListener(type, cancel);
+    node.addEventListener('contextmenu', (e) => e.preventDefault()); // 터치 롱프레스 메뉴 방지
     return node;
   };
 
