@@ -217,6 +217,51 @@ export function openNewEvaluationDialog() {
   nameInput.control.focus();
 }
 
+// "평가 목록" 팝업: 이름 변경, 이동, 순서, 삭제. 평가가 바뀔 때마다 목록을 다시 그린다.
+export function openEvaluationsDialog() {
+  const dialog = el('dialog', { class: 'sabc-dialog', 'aria-label': '평가 목록' });
+  const draw = () => {
+    const list = evaluations.list();
+    const act = (fn) => { fn(); draw(); };
+    dialog.replaceChildren(
+      el(
+        'div',
+        { class: 'stack' },
+        el('h2', {}, `평가 ${list.length}개`),
+        el('p', { class: 'muted' }, '평가마다 대상자, 기준, 배치, 옵션이 따로 저장돼요.'),
+        ...list.map((e, i) => {
+          const name = textInput({
+            value: e.name,
+            label: '평가 이름',
+            onchange: () => {
+              if (name.control.value.trim() === '') name.control.value = e.name;
+              else act(() => evaluations.rename(e.id, name.control.value));
+            },
+          });
+          const isActive = e.id === evaluations.activeId();
+          return el(
+            'div',
+            { class: 'row' },
+            name,
+            btn(isActive ? '현재' : '이동', { variant: isActive ? 'neutralWeak' : 'brandSolid', disabled: isActive, onclick: () => act(() => evaluations.switchTo(e.id)) }),
+            btn('↑', { variant: 'ghost', disabled: i === 0, title: '위로', onclick: () => act(() => evaluations.move(e.id, -1)) }),
+            btn('↓', { variant: 'ghost', disabled: i === list.length - 1, title: '아래로', onclick: () => act(() => evaluations.move(e.id, 1)) }),
+            btn('삭제', {
+              variant: 'ghost', danger: true, disabled: list.length === 1, title: list.length === 1 ? '마지막 평가는 지울 수 없어요' : undefined,
+              onclick: () => confirm(`'${e.name}'과(와) 그 안의 모든 데이터를 삭제합니다. 계속할까요?`) && act(() => evaluations.remove(e.id)),
+            }),
+          );
+        }),
+        el('div', { class: 'row end' }, btn('닫기', { onclick: () => dialog.close() })),
+      ),
+    );
+  };
+  draw();
+  dialog.addEventListener('close', () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
 // 모든 화면 위쪽의 공용 머리글: 서비스 이름 + 평가 선택 + 화면 이동 탭
 export function renderHeader(active) {
   const picker = el(
@@ -236,6 +281,7 @@ export function renderHeader(active) {
         variant: 'ghost', size: 'small',
         onclick: openNewEvaluationDialog,
       }),
+      btn('평가 설정', { variant: 'ghost', size: 'small', title: '평가 목록 관리', onclick: openEvaluationsDialog }),
     ),
     el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(PAGES, active, { nav: true })),
   );

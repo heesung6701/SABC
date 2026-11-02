@@ -4,10 +4,9 @@ import {
   removeCriterion, moveCriterion, replaceCriteria, setPoints, setDescription, applyPreset, setAllowPreview,
 } from './model.js';
 import { PRESETS } from './presets.js';
-import { btn, btnLink, callout, createApp, el, evaluations, field, openNewEvaluationDialog, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
+import { btn, btnLink, callout, createApp, el, field, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
 
 const TABS = [
-  ['evaluations', '평가 목록'],
   ['subjects', '대상자'],
   ['criteria', '기준'],
   ['options', '옵션'],
@@ -304,40 +303,6 @@ function criteriaPanel(data, apply, refresh) {
   );
 }
 
-function evaluationsPanel() {
-  const list = evaluations.list();
-  return el(
-    'div',
-    { class: 'stack' },
-    el('h2', {}, `평가 ${list.length}개`),
-    el('p', { class: 'muted' }, '평가마다 대상자, 기준, 배치, 옵션이 따로 저장돼요. 위쪽 선택칸이나 여기서 이동할 수 있어요.'),
-    ...list.map((e, i) => {
-      const name = textInput({
-        value: e.name,
-        label: '평가 이름',
-        onchange: () => {
-          if (name.control.value.trim() === '') name.control.value = e.name;
-          else evaluations.rename(e.id, name.control.value);
-        },
-      });
-      const isActive = e.id === evaluations.activeId();
-      return el(
-        'div',
-        { class: 'row' },
-        name,
-        btn(isActive ? '현재' : '이동', { variant: isActive ? 'neutralWeak' : 'brandSolid', disabled: isActive, onclick: () => evaluations.switchTo(e.id) }),
-        btn('↑', { variant: 'ghost', disabled: i === 0, title: '위로', onclick: () => evaluations.move(e.id, -1) }),
-        btn('↓', { variant: 'ghost', disabled: i === list.length - 1, title: '아래로', onclick: () => evaluations.move(e.id, 1) }),
-        btn('삭제', {
-          variant: 'ghost', danger: true, disabled: list.length === 1, title: list.length === 1 ? '마지막 평가는 지울 수 없어요' : undefined,
-          onclick: () => confirm(`'${e.name}'과(와) 그 안의 모든 데이터를 삭제합니다. 계속할까요?`) && evaluations.remove(e.id),
-        }),
-      );
-    }),
-    el('div', {}, btn('+ 새 평가', { variant: 'brandSolid', onclick: openNewEvaluationDialog })),
-  );
-}
-
 function optionsPanel(data, apply) {
   return el(
     'div',
@@ -406,7 +371,7 @@ createApp((data, commit, current) => {
 
   const ready = data.subjects.length > 0 && data.criteria.length > 0;
   const isEmpty = data.subjects.length === 0 && data.criteria.length === 0;
-  const panels = { evaluations: evaluationsPanel, subjects: subjectsPanel, criteria: criteriaPanel, options: optionsPanel, data: dataPanel };
+  const panels = { subjects: subjectsPanel, criteria: criteriaPanel, options: optionsPanel, data: dataPanel };
 
   if (focusTarget) {
     const target = focusTarget;
