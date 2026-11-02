@@ -197,6 +197,7 @@ export function newEvaluationForm({ onCancel } = {}) {
     const data = applyPreset({ subjects: parseNames(subjectsInput.control.value), criteria });
     onCancel?.();
     evaluations.add(nameInput.control.value, data);
+    if (/\/(settings|result)\.html$/.test(location.pathname)) location.href = 'index.html'; // 만든 뒤에는 평가 탭으로
   };
   return el(
       'div',
