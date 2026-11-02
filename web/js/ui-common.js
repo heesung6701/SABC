@@ -1,5 +1,7 @@
 import { createStore, STORAGE_KEY } from './store.js';
-import { activeEvaluation, updateActive, addEvaluation, renameEvaluation, switchEvaluation, removeEvaluation, moveEvaluation } from './model.js';
+import { PRESETS } from './presets.js';
+import { parseNames } from './core.js';
+import { activeEvaluation, updateActive, addEvaluation, applyPreset, renameEvaluation, switchEvaluation, removeEvaluation, moveEvaluation } from './model.js';
 
 const store = createStore();
 
@@ -138,12 +140,77 @@ const PAGES = [
 export const evaluations = {
   list: () => [],
   activeId: () => null,
-  add: (_name) => {},
+  add: (_name, _data) => {},
   switchTo: (_id) => {},
   rename: (_id, _name) => {},
   remove: (_id) => {},
   move: (_id, _delta) => {},
 };
+
+// "새 평가" 대화상자: 이름 + 시작 내용(preset 또는 기존 평가 복사)을 고르면 대상자·기준이 채워지고, 만들기 전에 고칠 수 있다.
+export function openNewEvaluationDialog() {
+  const templates = [
+    ...PRESETS.map((p) => ({ key: `preset:${p.id}`, label: p.name, hint: p.summary, source: p })),
+    ...evaluations.list().map((e) => ({
+      key: `eval:${e.id}`,
+      label: `복사: ${e.name}`,
+      hint: '대상자와 기준을 가져오고 배치는 비워요',
+      source: { subjects: e.data.subjects.map((s) => s.name), criteria: e.data.criteria.map(({ name, description, points }) => ({ name, description, points })) },
+    })),
+  ];
+  const defaultKey = PRESETS.some((p) => p.id === 'empty') ? 'preset:empty' : templates[0].key;
+
+  const nameInput = textInput({ label: '평가 이름', placeholder: `비우면 자동으로 정해요 (평가 ${evaluations.list().length + 1})` });
+  const select = el('select', { class: 'eval-picker wide', 'aria-label': '시작 내용', onchange: () => fill() }, ...templates.map((t) => el('option', { value: t.key, selected: t.key === defaultKey }, t.label)));
+  const hint = el('p', { class: 'muted' });
+  const subjectsInput = textInput({ multiline: true, label: '대상자', placeholder: '줄바꿈 또는 쉼표로 구분 (나중에 설정에서도 추가할 수 있어요)' });
+  const criteriaBox = el('div', { class: 'stack' });
+  let rows = []; // { name, description, points }
+
+  const drawCriteria = () => {
+    criteriaBox.replaceChildren(
+      ...rows.map((row, i) => {
+        const name = textInput({ value: row.name, label: '기준 이름', placeholder: '기준 이름', onchange: () => { row.name = name.control.value; } });
+        const desc = textInput({ value: row.description ?? '', multiline: true, label: `${row.name || '기준'} 설명`, placeholder: '설명 (선택)', onchange: () => { row.description = desc.control.value; } });
+        return el('div', { class: 'card' }, el('div', { class: 'row' }, name, btn('삭제', { variant: 'ghost', danger: true, onclick: () => { rows.splice(i, 1); drawCriteria(); } })), desc);
+      }),
+      btn('+ 기준 추가', { variant: 'ghost', size: 'small', onclick: () => { rows.push({ name: '' }); drawCriteria(); } }),
+    );
+  };
+  const fill = () => {
+    const t = templates.find((x) => x.key === select.value);
+    hint.textContent = t.hint;
+    subjectsInput.control.value = t.source.subjects.join('\n');
+    rows = t.source.criteria.map((c) => ({ ...c }));
+    drawCriteria();
+  };
+  fill();
+
+  const dialog = el('dialog', { class: 'sabc-dialog', 'aria-label': '새 평가' });
+  const create = () => {
+    const criteria = rows.map((r) => ({ ...r, name: (r.name ?? '').trim(), description: (r.description ?? '').trim() })).filter((r) => r.name !== '');
+    const data = applyPreset({ subjects: parseNames(subjectsInput.control.value), criteria });
+    dialog.close();
+    evaluations.add(nameInput.control.value, data);
+  };
+  dialog.append(
+    el(
+      'div',
+      { class: 'stack' },
+      el('h2', {}, '새 평가'),
+      field('이름', nameInput),
+      field('시작 내용', select, '고르면 아래 내용이 채워져요. 만들기 전에 자유롭게 고칠 수 있어요.'),
+      hint,
+      field('대상자', subjectsInput),
+      field('기준', criteriaBox),
+      el('div', { class: 'row end' }, btn('취소', { onclick: () => dialog.close() }), btn('만들기', { variant: 'brandSolid', onclick: create })),
+    ),
+  );
+  dialog.addEventListener('close', () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+  nameInput.control.focus();
+}
 
 // 모든 화면 위쪽의 공용 머리글: 서비스 이름 + 평가 선택 + 화면 이동 탭
 export function renderHeader(active) {
@@ -162,10 +229,7 @@ export function renderHeader(active) {
       picker,
       btn('+ 새 평가', {
         variant: 'ghost', size: 'small',
-        onclick: () => {
-          const name = prompt('새 평가 이름 (비우면 자동으로 정해요)');
-          if (name !== null) evaluations.add(name);
-        },
+        onclick: openNewEvaluationDialog,
       }),
     ),
     el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(PAGES, active, { nav: true })),
@@ -209,7 +273,7 @@ export function createApp(render) {
   Object.assign(evaluations, {
     list: () => ws.evaluations,
     activeId: () => ws.activeId,
-    add: (name) => commitWorkspace((w) => addEvaluation(w, name)),
+    add: (name, newData) => commitWorkspace((w) => addEvaluation(w, name, newData)),
     switchTo: (id) => commitWorkspace((w) => switchEvaluation(w, id)),
     rename: (id, name) => commitWorkspace((w) => renameEvaluation(w, id, name)),
     remove: (id) => commitWorkspace((w) => removeEvaluation(w, id)),

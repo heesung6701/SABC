@@ -52,3 +52,11 @@ test('validateWorkspace rejects bad shapes', () => {
   assert.ok(validateWorkspace({ ...ws, activeId: 'zzz' }).length > 0);
   assert.ok(validateWorkspace({ ...ws, evaluations: [...ws.evaluations, ws.evaluations[0]] }).length > 0);
 });
+
+test('addEvaluation accepts initial data; applyPreset keeps criterion points', async () => {
+  const { applyPreset } = await import('../web/js/model.js');
+  const data = applyPreset({ subjects: ['가'], criteria: [{ name: 'a', description: 'd', points: { S: 9, A: 6, B: 3, C: 1 } }] });
+  const ws = addEvaluation(emptyWorkspace(), 'T', data);
+  assert.deepEqual(validateWorkspace(ws), []);
+  assert.equal(activeEvaluation(ws).data.criteria[0].points.S, 9);
+});

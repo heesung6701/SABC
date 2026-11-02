@@ -92,3 +92,7 @@ td.num { font-variant-numeric: tabular-nums; }
 .seed-switchmark__thumb { display: block; }
 .eval-picker { appearance: none; -webkit-appearance: none; height: 2rem; padding: 0 var(--seed-dimension-x8) 0 var(--seed-dimension-x3); border: 1px solid var(--seed-color-stroke-neutral-muted); border-radius: var(--seed-radius-r2); background: var(--seed-color-bg-layer-default) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 4.5l4 4 4-4'/%3E%3C/svg%3E") no-repeat right var(--seed-dimension-x3) center; color: var(--seed-color-fg-neutral); font: inherit; font-size: var(--seed-font-size-t3); max-width: 12rem; text-overflow: ellipsis; cursor: pointer; }
 .eval-picker:focus-visible { outline: 2px solid var(--seed-color-stroke-brand-solid); outline-offset: 1px; }
+.eval-picker.wide { max-width: none; width: 100%; }
+.row.end { justify-content: flex-end; }
+.sabc-dialog { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; border: 0; border-radius: var(--seed-radius-r4); padding: var(--seed-dimension-x5); background: var(--seed-color-bg-layer-default); color: var(--seed-color-fg-neutral); }
+.sabc-dialog::backdrop { background: rgb(0 0 0 / 0.5); }

@@ -81,10 +81,11 @@ export function applyPreset(preset) {
   return {
     version: 1,
     subjects: preset.subjects.map((name, i) => ({ id: `s${i + 1}`, name })),
-    criteria: preset.criteria.map(({ name, description }, i) => ({
+    criteria: preset.criteria.map(({ name, description, points }, i) => ({
       id: `c${i + 1}`,
       name,
       ...(description ? { description } : {}),
+      ...(points ? { points } : {}),
     })),
     placements: {},
   };
@@ -120,11 +121,11 @@ export function updateActive(ws, fn) {
   return { ...ws, evaluations: ws.evaluations.map((e) => (e.id === ws.activeId ? { ...e, data: fn(e.data) } : e)) };
 }
 
-// 새 평가를 만들고 그쪽으로 이동한다. 이름이 비면 "평가 N".
-export function addEvaluation(ws, name = '') {
+// 새 평가를 만들고 그쪽으로 이동한다. data를 생략하면 빈 평가. 이름이 비면 "평가 N".
+export function addEvaluation(ws, name = '', data = emptyData()) {
   const id = nextId('e', ws.evaluations);
   const label = name.trim() || `평가 ${id.slice(1)}`;
-  return { ...ws, activeId: id, evaluations: [...ws.evaluations, { id, name: label, data: emptyData() }] };
+  return { ...ws, activeId: id, evaluations: [...ws.evaluations, { id, name: label, data }] };
 }
 
 export function renameEvaluation(ws, id, name) {

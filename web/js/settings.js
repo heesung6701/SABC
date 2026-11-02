@@ -4,7 +4,7 @@ import {
   removeCriterion, moveCriterion, replaceCriteria, setPoints, setDescription, applyPreset, setAllowPreview,
 } from './model.js';
 import { PRESETS } from './presets.js';
-import { btn, btnLink, callout, createApp, el, evaluations, field, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
+import { btn, btnLink, callout, createApp, el, evaluations, field, openNewEvaluationDialog, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
 
 const TABS = [
   ['evaluations', '평가 목록'],
@@ -334,7 +334,7 @@ function evaluationsPanel() {
         }),
       );
     }),
-    el('div', {}, btn('+ 새 평가', { variant: 'brandSolid', onclick: () => evaluations.add('') })),
+    el('div', {}, btn('+ 새 평가', { variant: 'brandSolid', onclick: openNewEvaluationDialog })),
   );
 }
 
