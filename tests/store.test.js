@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { emptyData } from '../web/js/core.js';
+import { emptyWorkspace, toWorkspace } from '../web/js/core.js';
 import { STORAGE_KEY, BACKUP_KEY, createStore } from '../web/js/store.js';
 
-const sample = JSON.parse(
+const sampleData = JSON.parse(
   readFileSync(new URL('./fixtures/scoring.json', import.meta.url), 'utf-8'),
 ).find((c) => c.name === 'ranking-1-1-3').data;
+const sample = toWorkspace(sampleData);
 
 function fakeStorage(overrides = {}) {
   const map = new Map();
@@ -20,7 +21,7 @@ function fakeStorage(overrides = {}) {
 }
 
 test('load on empty storage returns emptyData', () => {
-  assert.deepEqual(createStore(fakeStorage()).load(), emptyData());
+  assert.deepEqual(createStore(fakeStorage()).load(), emptyWorkspace());
 });
 
 test('save then load round-trips under the tier-eval-v1 key', () => {
@@ -35,18 +36,18 @@ test('save then load round-trips under the tier-eval-v1 key', () => {
 test('corrupt JSON falls back to emptyData', () => {
   const storage = fakeStorage();
   storage.map.set(STORAGE_KEY, '{x');
-  assert.deepEqual(createStore(storage).load(), emptyData());
+  assert.deepEqual(createStore(storage).load(), emptyWorkspace());
 });
 
 test('invalid data falls back to emptyData', () => {
   const storage = fakeStorage();
-  storage.map.set(STORAGE_KEY, JSON.stringify({ ...sample, version: 9 }));
-  assert.deepEqual(createStore(storage).load(), emptyData());
+  storage.map.set(STORAGE_KEY, JSON.stringify({ ...sampleData, version: 9 }));
+  assert.deepEqual(createStore(storage).load(), emptyWorkspace());
 });
 
 test('storage that throws on read falls back to emptyData', () => {
   const storage = fakeStorage({ getItem: () => { throw new Error('denied'); } });
-  assert.deepEqual(createStore(storage).load(), emptyData());
+  assert.deepEqual(createStore(storage).load(), emptyWorkspace());
 });
 
 test('save returns false when setItem throws', () => {
@@ -56,7 +57,7 @@ test('save returns false when setItem throws', () => {
 
 test('missing storage degrades to emptyData and failed saves', () => {
   const store = createStore(null);
-  assert.deepEqual(store.load(), emptyData());
+  assert.deepEqual(store.load(), emptyWorkspace());
   assert.equal(store.save(sample), false);
 });
 
@@ -69,11 +70,11 @@ test('clear removes the key', () => {
 });
 
 test('unreadable saved data is reported and backed up before anything overwrites it', () => {
-  for (const raw of ['{x', JSON.stringify({ ...sample, version: 9 })]) {
+  for (const raw of ['{x', JSON.stringify({ ...sampleData, version: 9 })]) {
     const storage = fakeStorage();
     storage.map.set(STORAGE_KEY, raw);
     const store = createStore(storage);
-    assert.deepEqual(store.load(), emptyData());
+    assert.deepEqual(store.load(), emptyWorkspace());
     assert.equal(store.loadFailed, true);
     assert.equal(storage.map.get(BACKUP_KEY), raw);
   }
@@ -93,4 +94,15 @@ test('a later successful load clears the failure flag', () => {
   store.save(sample);
   store.load();
   assert.equal(store.loadFailed, false);
+});
+
+test('legacy single-evaluation data is wrapped into a one-evaluation workspace', () => {
+  const storage = fakeStorage();
+  storage.map.set(STORAGE_KEY, JSON.stringify(sampleData));
+  const store = createStore(storage);
+  const ws = store.load();
+  assert.equal(store.loadFailed, false);
+  assert.equal(ws.evaluations.length, 1);
+  assert.deepEqual(ws.evaluations[0].data, sampleData);
+  assert.equal(ws.activeId, ws.evaluations[0].id);
 });

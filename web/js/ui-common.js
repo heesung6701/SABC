@@ -1,4 +1,5 @@
 import { createStore, STORAGE_KEY } from './store.js';
+import { activeEvaluation, updateActive, addEvaluation, renameEvaluation, switchEvaluation, removeEvaluation, moveEvaluation } from './model.js';
 
 const store = createStore();
 
@@ -133,12 +134,40 @@ const PAGES = [
   { key: 'settings', label: '설정', href: 'settings.html' },
 ];
 
-// 모든 화면 위쪽의 공용 머리글: 서비스 이름 + 화면 이동 탭
+// 평가 목록 조작. createApp이 채운다. 각 함수는 저장하고 화면을 다시 그린다.
+export const evaluations = {
+  list: () => [],
+  activeId: () => null,
+  add: (_name) => {},
+  switchTo: (_id) => {},
+  rename: (_id, _name) => {},
+  remove: (_id) => {},
+  move: (_id, _delta) => {},
+};
+
+// 모든 화면 위쪽의 공용 머리글: 서비스 이름 + 평가 선택 + 화면 이동 탭
 export function renderHeader(active) {
+  const picker = el(
+    'select',
+    { class: 'eval-picker', 'aria-label': '평가 선택', onchange: (event) => evaluations.switchTo(event.target.value) },
+    ...evaluations.list().map((e) => el('option', { value: e.id, selected: e.id === evaluations.activeId() }, e.name)),
+  );
   return el(
     'header',
     { class: 'app-header' },
     el('div', { class: 'brand' }, 'SABC'),
+    el(
+      'div',
+      { class: 'row' },
+      picker,
+      btn('+ 새 평가', {
+        variant: 'ghost', size: 'small',
+        onclick: () => {
+          const name = prompt('새 평가 이름 (비우면 자동으로 정해요)');
+          if (name !== null) evaluations.add(name);
+        },
+      }),
+    ),
     el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(PAGES, active, { nav: true })),
   );
 }
@@ -149,7 +178,8 @@ export function renderHeader(active) {
 // current()는 지금 데이터를 돌려준다 (repaint 없이 저장한 뒤에도 최신).
 export function createApp(render) {
   const root = document.getElementById('app');
-  let data = store.load();
+  let ws = store.load();
+  let data = activeEvaluation(ws).data;
   let loadFailed = store.loadFailed;
   let saveFailed = false;
 
@@ -168,16 +198,38 @@ export function createApp(render) {
     root.replaceChildren(...notices, render(data, commit, current));
   }
 
+  // 워크스페이스 전체를 바꾸는 변경(평가 추가/이동/삭제 등)
+  function commitWorkspace(fn) {
+    ws = fn(ws);
+    data = activeEvaluation(ws).data;
+    saveFailed = !store.save(ws);
+    if (!saveFailed) loadFailed = false;
+    paint();
+  }
+  Object.assign(evaluations, {
+    list: () => ws.evaluations,
+    activeId: () => ws.activeId,
+    add: (name) => commitWorkspace((w) => addEvaluation(w, name)),
+    switchTo: (id) => commitWorkspace((w) => switchEvaluation(w, id)),
+    rename: (id, name) => commitWorkspace((w) => renameEvaluation(w, id, name)),
+    remove: (id) => commitWorkspace((w) => removeEvaluation(w, id)),
+    move: (id, delta) => commitWorkspace((w) => moveEvaluation(w, id, delta)),
+  });
+
+  // 활성 평가의 데이터만 바꾼다
   function commit(next, { repaint = true } = {}) {
-    data = typeof next === 'function' ? next(data) : next;
-    saveFailed = !store.save(data);
+    const fn = typeof next === 'function' ? next : () => next;
+    ws = updateActive(ws, fn);
+    data = activeEvaluation(ws).data;
+    saveFailed = !store.save(ws);
     if (!saveFailed) loadFailed = false;
     if (repaint || saveFailed) paint();
   }
 
   // 뒤로 가기(bfcache)로 돌아오거나 다른 탭이 저장하면 메모리의 낡은 데이터를 버리고 다시 읽는다.
   function reload() {
-    data = store.load();
+    ws = store.load();
+    data = activeEvaluation(ws).data;
     loadFailed = store.loadFailed;
     paint();
   }

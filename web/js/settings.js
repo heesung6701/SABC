@@ -1,12 +1,13 @@
-import { TIERS, TIER_POINTS, pointsFor, validatePoints, parseImportJson, exportJson, parseNames, emptyData } from './core.js';
+import { TIERS, TIER_POINTS, pointsFor, validatePoints, parseImportJson, exportJson, parseNames, emptyData, exportSheetCsv, importSheetCsv, exportCriteriaJson, parseCriteriaJson } from './core.js';
 import {
   addSubject, addSubjects, addCriterion, addCriteria, renameSubject, renameCriterion, removeSubject,
-  removeCriterion, moveCriterion, setPoints, setDescription, applyPreset, setAllowPreview,
+  removeCriterion, moveCriterion, replaceCriteria, setPoints, setDescription, applyPreset, setAllowPreview,
 } from './model.js';
 import { PRESETS } from './presets.js';
-import { btn, btnLink, callout, createApp, el, field, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
+import { btn, btnLink, callout, createApp, el, evaluations, field, renderHeader, switchControl, tabList, textInput } from './ui-common.js';
 
 const TABS = [
+  ['evaluations', '평가 목록'],
   ['subjects', '대상자'],
   ['criteria', '기준'],
   ['options', '옵션'],
@@ -29,8 +30,8 @@ function report(messages) {
   messageBox.hidden = messages.length === 0;
 }
 
-function download(filename, text) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+function download(filename, text, type = 'application/json') {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = el('a', { href: url, download: filename });
   document.body.append(link);
   link.click();
@@ -54,6 +55,22 @@ function importControl(apply) {
     },
   });
   return [btn('JSON 파일 가져오기', { onclick: () => input.click() }), input];
+}
+
+// 파일 하나를 읽어 parse(text)가 {errors, ...}를 돌려주면 오류를 보이고, 아니면 confirmText 확인 뒤 apply한다.
+function fileImport(label, accept, parse, confirmText, apply) {
+  const input = el('input', {
+    type: 'file', accept, hidden: true,
+    onchange: async () => {
+      const file = input.files[0];
+      if (!file) return;
+      const result = parse(await file.text());
+      input.value = '';
+      if (result.errors.length > 0) return report(result.errors);
+      if (confirm(confirmText)) apply(result);
+    },
+  });
+  return [btn(label, { onclick: () => input.click() }), input];
 }
 
 // 시작 안내(데이터가 없을 때만 보임): 빈 구성은 지금 상태 그대로라 목록에서 뺀다
@@ -287,6 +304,40 @@ function criteriaPanel(data, apply, refresh) {
   );
 }
 
+function evaluationsPanel() {
+  const list = evaluations.list();
+  return el(
+    'div',
+    { class: 'stack' },
+    el('h2', {}, `평가 ${list.length}개`),
+    el('p', { class: 'muted' }, '평가마다 대상자, 기준, 배치, 옵션이 따로 저장돼요. 위쪽 선택칸이나 여기서 이동할 수 있어요.'),
+    ...list.map((e, i) => {
+      const name = textInput({
+        value: e.name,
+        label: '평가 이름',
+        onchange: () => {
+          if (name.control.value.trim() === '') name.control.value = e.name;
+          else evaluations.rename(e.id, name.control.value);
+        },
+      });
+      const isActive = e.id === evaluations.activeId();
+      return el(
+        'div',
+        { class: 'row' },
+        name,
+        btn(isActive ? '현재' : '이동', { variant: isActive ? 'neutralWeak' : 'brandSolid', disabled: isActive, onclick: () => evaluations.switchTo(e.id) }),
+        btn('↑', { variant: 'ghost', disabled: i === 0, title: '위로', onclick: () => evaluations.move(e.id, -1) }),
+        btn('↓', { variant: 'ghost', disabled: i === list.length - 1, title: '아래로', onclick: () => evaluations.move(e.id, 1) }),
+        btn('삭제', {
+          variant: 'ghost', danger: true, disabled: list.length === 1, title: list.length === 1 ? '마지막 평가는 지울 수 없어요' : undefined,
+          onclick: () => confirm(`'${e.name}'과(와) 그 안의 모든 데이터를 삭제합니다. 계속할까요?`) && evaluations.remove(e.id),
+        }),
+      );
+    }),
+    el('div', {}, btn('+ 새 평가', { variant: 'brandSolid', onclick: () => evaluations.add('') })),
+  );
+}
+
 function optionsPanel(data, apply) {
   return el(
     'div',
@@ -308,9 +359,33 @@ function dataPanel(data, apply, current) {
     el(
       'section',
       { class: 'card' },
-      el('h2', {}, '백업과 이동'),
+      el('h2', {}, '전체 백업 (JSON)'),
       el('p', { class: 'muted' }, '대상자, 기준, 점수표, 배치를 JSON 파일로 저장하거나 불러와요. 파일을 직접 고쳐서 다시 가져와도 돼요. 가져오면 현재 데이터를 교체합니다.'),
       el('div', { class: 'row wrap' }, btn('JSON 내보내기', { variant: 'neutralSolid', onclick: () => download('tier-eval.json', exportJson(current())) }), ...importControl(apply)),
+    ),
+    el(
+      'section',
+      { class: 'card' },
+      el('h2', {}, '대상자·평가표 (CSV / 엑셀)'),
+      el('p', { class: 'muted' }, '첫 열은 대상자, 나머지 열은 기준 이름이고 칸에는 S/A/B/C를 적어요. 엑셀에서 열어 고친 뒤 CSV로 저장해 가져오세요. 가져오면 대상자와 배치를 교체하고, 열 이름은 현재 기준과 같아야 해요.'),
+      el(
+        'div',
+        { class: 'row wrap' },
+        btn('CSV 내보내기', { variant: 'neutralSolid', onclick: () => download('sabc-sheet.csv', exportSheetCsv(current()), 'text/csv;charset=utf-8') }),
+        ...fileImport('CSV 가져오기', '.csv,text/csv', (text) => importSheetCsv(current(), text), '현재 대상자와 배치를 교체합니다. 계속할까요?', ({ data: next }) => apply(next)),
+      ),
+    ),
+    el(
+      'section',
+      { class: 'card' },
+      el('h2', {}, '평가 기준 (JSON)'),
+      el('p', { class: 'muted' }, '기준의 이름, 설명, 점수표만 저장해요. 가져오면 현재 기준을 교체하고 배치는 비워져요.'),
+      el(
+        'div',
+        { class: 'row wrap' },
+        btn('기준 내보내기', { variant: 'neutralSolid', onclick: () => download('sabc-criteria.json', exportCriteriaJson(current())) }),
+        ...fileImport('기준 가져오기', 'application/json,.json', parseCriteriaJson, '현재 기준을 교체하고 배치를 비웁니다. 계속할까요?', ({ criteria }) => apply((d) => replaceCriteria(d, criteria))),
+      ),
     ),
     el(
       'section',
@@ -331,7 +406,7 @@ createApp((data, commit, current) => {
 
   const ready = data.subjects.length > 0 && data.criteria.length > 0;
   const isEmpty = data.subjects.length === 0 && data.criteria.length === 0;
-  const panels = { subjects: subjectsPanel, criteria: criteriaPanel, options: optionsPanel, data: dataPanel };
+  const panels = { evaluations: evaluationsPanel, subjects: subjectsPanel, criteria: criteriaPanel, options: optionsPanel, data: dataPanel };
 
   if (focusTarget) {
     const target = focusTarget;

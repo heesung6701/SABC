@@ -90,3 +90,4 @@ td.tier { color: #111; font-weight: var(--seed-font-weight-bold); text-align: ce
 td.num { font-variant-numeric: tabular-nums; }
 .seed-switchmark__root { display: inline-flex; flex: none; }
 .seed-switchmark__thumb { display: block; }
+.eval-picker { padding: var(--seed-dimension-x2) var(--seed-dimension-x3); border: 1px solid var(--seed-color-stroke-neutral-muted); border-radius: var(--seed-radius-r2); background: var(--seed-color-bg-layer-default); color: var(--seed-color-fg-neutral); font: inherit; max-width: 12rem; }

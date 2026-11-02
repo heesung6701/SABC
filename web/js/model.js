@@ -1,3 +1,5 @@
+import { emptyData } from './core.js';
+
 // 모든 함수는 새 데이터를 반환하고 입력을 변경하지 않는다.
 
 export function nextId(prefix, items) {
@@ -102,4 +104,54 @@ export function setDescription(data, criterionId, text) {
       return trimmed === '' ? rest : { ...rest, description: trimmed };
     }),
   };
+}
+
+// 기준 전체를 바꾼다. 기준 id가 새로 매겨지므로 기존 배치는 비운다.
+export function replaceCriteria(data, criteria) {
+  return { ...data, criteria, placements: {} };
+}
+
+// ---- 워크스페이스(평가 여러 개) ----
+
+export const activeEvaluation = (ws) => ws.evaluations.find((e) => e.id === ws.activeId);
+
+// 활성 평가의 data만 바꾼다
+export function updateActive(ws, fn) {
+  return { ...ws, evaluations: ws.evaluations.map((e) => (e.id === ws.activeId ? { ...e, data: fn(e.data) } : e)) };
+}
+
+// 새 평가를 만들고 그쪽으로 이동한다. 이름이 비면 "평가 N".
+export function addEvaluation(ws, name = '') {
+  const id = nextId('e', ws.evaluations);
+  const label = name.trim() || `평가 ${id.slice(1)}`;
+  return { ...ws, activeId: id, evaluations: [...ws.evaluations, { id, name: label, data: emptyData() }] };
+}
+
+export function renameEvaluation(ws, id, name) {
+  const trimmed = name.trim();
+  if (trimmed === '') return ws;
+  return { ...ws, evaluations: ws.evaluations.map((e) => (e.id === id ? { ...e, name: trimmed } : e)) };
+}
+
+export function switchEvaluation(ws, id) {
+  return ws.evaluations.some((e) => e.id === id) ? { ...ws, activeId: id } : ws;
+}
+
+// 마지막 하나는 지울 수 없다. 활성 평가를 지우면 앞 평가(없으면 다음)로 옮긴다.
+export function removeEvaluation(ws, id) {
+  const index = ws.evaluations.findIndex((e) => e.id === id);
+  if (index < 0 || ws.evaluations.length === 1) return ws;
+  const evaluations = ws.evaluations.filter((e) => e.id !== id);
+  const activeId = ws.activeId === id ? evaluations[Math.max(0, index - 1)].id : ws.activeId;
+  return { ...ws, activeId, evaluations };
+}
+
+// 평가 순서를 옮긴다
+export function moveEvaluation(ws, id, delta) {
+  const from = ws.evaluations.findIndex((e) => e.id === id);
+  const to = from + delta;
+  if (from < 0 || to < 0 || to >= ws.evaluations.length) return ws;
+  const evaluations = [...ws.evaluations];
+  [evaluations[from], evaluations[to]] = [evaluations[to], evaluations[from]];
+  return { ...ws, evaluations };
 }

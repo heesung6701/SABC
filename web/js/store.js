@@ -1,4 +1,4 @@
-import { emptyData, validateData } from './core.js';
+import { emptyWorkspace, toWorkspace } from './core.js';
 
 export const STORAGE_KEY = 'tier-eval-v1';
 export const BACKUP_KEY = 'tier-eval-v1-backup';
@@ -23,9 +23,9 @@ export function createStore(storage) {
       let raw = null;
       try {
         raw = target?.getItem(STORAGE_KEY) ?? null;
-        if (raw === null) return emptyData();
-        const data = JSON.parse(raw);
-        if (validateData(data).length === 0) return data;
+        if (raw === null) return emptyWorkspace();
+        const ws = toWorkspace(JSON.parse(raw));
+        if (ws) return ws;
       } catch {
         // 읽기 실패나 깨진 JSON은 아래에서 같은 방식으로 처리한다
       }
@@ -35,7 +35,7 @@ export function createStore(storage) {
       } catch {
         // 백업도 못 하면 어쩔 수 없다
       }
-      return emptyData();
+      return emptyWorkspace();
     },
     get loadFailed() {
       return loadFailed;

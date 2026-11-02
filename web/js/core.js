@@ -159,3 +159,131 @@ export function parseNames(text) {
     .map((name) => name.trim())
     .filter(Boolean);
 }
+
+// ---- 워크스페이스: 평가(대상자+기준+배치) 여러 개를 담는 최상위 저장 형식 ----
+
+export function emptyWorkspace() {
+  return { version: 2, activeId: 'e1', evaluations: [{ id: 'e1', name: '평가 1', data: emptyData() }] };
+}
+
+// 저장된 값을 워크스페이스로 바꾼다. 예전 단일 평가 데이터(version 1)는 평가 하나로 감싼다. 못 읽으면 null.
+export function toWorkspace(raw) {
+  if (isObject(raw) && raw.version === 1 && raw.evaluations === undefined) {
+    return validateData(raw).length === 0 ? { version: 2, activeId: 'e1', evaluations: [{ id: 'e1', name: '평가 1', data: raw }] } : null;
+  }
+  return validateWorkspace(raw).length === 0 ? raw : null;
+}
+
+export function validateWorkspace(ws) {
+  if (!isObject(ws)) return ['workspace: 객체여야 합니다'];
+  const errors = [];
+  if (ws.version !== 2) errors.push('version: 2여야 합니다');
+  if (!Array.isArray(ws.evaluations) || ws.evaluations.length === 0) {
+    errors.push('evaluations: 1개 이상의 배열이어야 합니다');
+    return errors;
+  }
+  const ids = new Set();
+  ws.evaluations.forEach((ev, i) => {
+    const path = `evaluations[${i}]`;
+    if (!isObject(ev)) return errors.push(`${path}: 객체여야 합니다`);
+    if (typeof ev.id !== 'string' || ev.id === '' || ids.has(ev.id)) errors.push(`${path}.id: 비어 있지 않은 고유 문자열이어야 합니다`);
+    else ids.add(ev.id);
+    if (typeof ev.name !== 'string' || ev.name.trim() === '') errors.push(`${path}.name: 비어 있지 않은 문자열이어야 합니다`);
+    for (const message of validateData(ev.data)) errors.push(`${path}.data.${message}`);
+  });
+  if (!ids.has(ws.activeId)) errors.push('activeId: 존재하는 평가 id여야 합니다');
+  return errors;
+}
+
+// ---- 대상자+평가표 CSV (엑셀에서 열고 저장 가능) ----
+// 첫 열은 대상자 이름, 나머지 열은 기준 이름이고 칸에는 S/A/B/C 또는 빈칸을 쓴다.
+
+const csvCell = (value) => (/[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value);
+
+// 엑셀이 한글 UTF-8로 인식하도록 맨 앞에 BOM을 붙인다
+export function exportSheetCsv(data) {
+  const lines = [['대상자', ...data.criteria.map((c) => c.name)], ...data.subjects.map((s) => [s.name, ...data.criteria.map((c) => data.placements[c.id]?.[s.id] ?? '')])];
+  return '\uFEFF' + lines.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
+// 따옴표·줄바꿈·구분자를 지원하는 최소 CSV 파서. 엑셀의 세미콜론/탭 구분은 지원하지 않는다.
+export function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  const src = text.replace(/^\uFEFF/, '');
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && src[i + 1] === '\n') i++;
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else cell += ch;
+  }
+  if (cell !== '' || row.length > 0) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim() !== ''));
+}
+
+// CSV로 대상자와 배치를 교체한다. 기준은 현재 기준과 이름으로 맞춘다. 오류가 있으면 data는 null.
+export function importSheetCsv(data, text) {
+  const rows = parseCsv(text);
+  if (rows.length === 0) return { data: null, errors: ['비어 있는 파일입니다'] };
+  const errors = [];
+  const [header, ...body] = rows;
+  const columns = header.slice(1).map((name) => name.trim());
+  const byName = new Map(data.criteria.map((c) => [c.name, c]));
+  const seen = new Set();
+  columns.forEach((name, i) => {
+    if (!byName.has(name)) errors.push(`${i + 2}열 '${name}': 현재 기준에 없는 이름입니다. 기준을 먼저 설정하거나 가져오세요`);
+    else if (seen.has(name)) errors.push(`${i + 2}열 '${name}': 중복된 기준 열입니다`);
+    seen.add(name);
+  });
+  const subjects = [];
+  const placements = {};
+  const names = new Set();
+  body.forEach((cells, r) => {
+    const name = (cells[0] ?? '').trim();
+    if (name === '') return errors.push(`${r + 2}행: 대상자 이름이 비어 있습니다`);
+    if (names.has(name)) return errors.push(`${r + 2}행 '${name}': 중복된 대상자입니다`);
+    names.add(name);
+    const id = `s${subjects.length + 1}`;
+    subjects.push({ id, name });
+    columns.forEach((column, i) => {
+      const tier = (cells[i + 1] ?? '').trim().toUpperCase();
+      if (tier === '' || !byName.has(column)) return;
+      if (!TIERS.includes(tier)) return errors.push(`${r + 2}행 '${name}', '${column}': 티어는 S/A/B/C 또는 빈칸이어야 합니다 (${cells[i + 1].trim()})`);
+      const criterionId = byName.get(column).id;
+      placements[criterionId] = { ...placements[criterionId], [id]: tier };
+    });
+  });
+  return errors.length > 0 ? { data: null, errors } : { data: { ...data, subjects, placements }, errors: [] };
+}
+
+// ---- 평가 기준 JSON (이름·설명·점수표만. 대상자와 배치는 빠진다) ----
+
+export function exportCriteriaJson(data) {
+  return JSON.stringify({ version: 1, criteria: data.criteria.map(({ name, description, points }) => ({ name, ...(description ? { description } : {}), ...(points ? { points } : {}) })) }, null, 2);
+}
+
+export function parseCriteriaJson(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    return { criteria: null, errors: [`JSON 형식이 올바르지 않습니다: ${error.message}`] };
+  }
+  if (!isObject(parsed) || parsed.version !== 1 || !Array.isArray(parsed.criteria)) {
+    return { criteria: null, errors: ['{ "version": 1, "criteria": [...] } 형식이어야 합니다'] };
+  }
+  // 임시 id를 붙여 기존 데이터 검증을 재사용한다
+  const criteria = parsed.criteria.map((c, i) => (isObject(c) ? { ...c, id: `c${i + 1}` } : c));
+  const errors = validateData({ version: 1, subjects: [], criteria, placements: {} });
+  if (new Set(criteria.map((c) => c?.name)).size !== criteria.length) errors.push('criteria: 기준 이름이 중복되었습니다');
+  return errors.length > 0 ? { criteria: null, errors } : { criteria, errors: [] };
+}
