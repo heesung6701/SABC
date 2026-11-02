@@ -313,7 +313,7 @@ export function renderHeader(active) {
         variant: 'ghost', size: 'small',
         onclick: openNewEvaluationDialog,
       }),
-      btn('평가 설정', { variant: 'ghost', size: 'small', title: '평가 목록 관리', onclick: openEvaluationsDialog }),
+      el('button', { type: 'button', class: buttonClass('ghost', 'small'), 'aria-label': '평가 목록 설정', title: '평가 목록 설정', onclick: openEvaluationsDialog }, '⚙'),
     ),
     el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(pages, active, { nav: true })),
   );
