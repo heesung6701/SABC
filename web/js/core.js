@@ -26,6 +26,20 @@ export function validatePoints(points) {
   return null;
 }
 
+// 티어 안 보정(±). 한 단계 = 기준의 가장 좁은 티어 간격 / 5, 최대 ±2단계.
+// 어느 방향으로 최대로 줘도 2 * 2 * 단위 = 간격의 80% 이하라서 티어 순서가 뒤집히지 않는다.
+export const MAX_ADJUST = 2;
+
+export function adjustmentUnit(criterion) {
+  const points = pointsFor(criterion);
+  const gap = Math.min(...TIERS.slice(0, -1).map((tier, i) => points[tier] - points[TIERS[i + 1]]));
+  return gap / (2 * MAX_ADJUST + 1);
+}
+
+export const dropAdjustments = ({ adjustments: _dropped, ...rest }) => rest;
+
+export const adjustmentOf = (data, criterionId, subjectId) => data.adjustments?.[criterionId]?.[subjectId] ?? 0;
+
 function tierOf(data, criterionId, subjectId) {
   const tier = data.placements[criterionId]?.[subjectId];
   return TIERS.includes(tier) ? tier : null;
@@ -48,7 +62,7 @@ export function computeResults(data) {
         missing++;
         continue;
       }
-      total += pointsFor(criterion)[tier];
+      total += pointsFor(criterion)[tier] + adjustmentUnit(criterion) * adjustmentOf(data, criterion.id, subject.id);
       if (tier === 'S') sCount++;
     }
     // 소수 점수표의 부동소수점 오차로 동점이 갈리지 않게 반올림해서 비교한다
@@ -117,6 +131,21 @@ export function validateData(data) {
   if (!isObject(data.placements)) {
     errors.push('placements: 객체여야 합니다');
     return errors;
+  }
+  if (data.adjustments !== undefined) {
+    if (!isObject(data.adjustments)) errors.push('adjustments: 객체여야 합니다');
+    else {
+      for (const [criterionId, byCriterion] of Object.entries(data.adjustments)) {
+        if (!ids.criteria.has(criterionId)) errors.push(`adjustments.${criterionId}: 존재하지 않는 기준입니다`);
+        else if (!isObject(byCriterion)) errors.push(`adjustments.${criterionId}: 객체여야 합니다`);
+        else {
+          for (const [subjectId, value] of Object.entries(byCriterion)) {
+            if (!ids.subjects.has(subjectId)) errors.push(`adjustments.${criterionId}.${subjectId}: 존재하지 않는 대상자입니다`);
+            else if (!Number.isInteger(value) || Math.abs(value) > MAX_ADJUST) errors.push(`adjustments.${criterionId}.${subjectId}: -${MAX_ADJUST}~${MAX_ADJUST} 사이 정수여야 합니다`);
+          }
+        }
+      }
+    }
   }
   for (const [criterionId, byCriterion] of Object.entries(data.placements)) {
     if (!ids.criteria.has(criterionId)) {
@@ -261,7 +290,7 @@ export function importSheetCsv(data, text) {
       placements[criterionId] = { ...placements[criterionId], [id]: tier };
     });
   });
-  return errors.length > 0 ? { data: null, errors } : { data: { ...data, subjects, placements }, errors: [] };
+  return errors.length > 0 ? { data: null, errors } : { data: { ...dropAdjustments(data), subjects, placements }, errors: [] };
 }
 
 // ---- 평가 기준 JSON (이름·설명·점수표만. 대상자와 배치는 빠진다) ----

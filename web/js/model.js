@@ -1,4 +1,4 @@
-import { emptyData } from './core.js';
+import { emptyData, dropAdjustments, MAX_ADJUST, TIERS } from './core.js';
 
 // 모든 함수는 새 데이터를 반환하고 입력을 변경하지 않는다.
 
@@ -30,6 +30,8 @@ export const addCriteria = (data, names) => names.reduce(addCriterion, data);
 export const renameSubject = (data, id, name) => renameItem(data, 'subjects', id, name);
 export const renameCriterion = (data, id, name) => renameItem(data, 'criteria', id, name);
 
+const mapValues = (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v)]));
+
 export function removeSubject(data, id) {
   const placements = Object.fromEntries(
     Object.entries(data.placements).map(([criterionId, byCriterion]) => [
@@ -37,12 +39,14 @@ export function removeSubject(data, id) {
       Object.fromEntries(Object.entries(byCriterion).filter(([subjectId]) => subjectId !== id)),
     ]),
   );
-  return { ...data, subjects: data.subjects.filter((s) => s.id !== id), placements };
+  const adjustments = data.adjustments && mapValues(data.adjustments, (byCriterion) => Object.fromEntries(Object.entries(byCriterion).filter(([subjectId]) => subjectId !== id)));
+  return { ...data, subjects: data.subjects.filter((s) => s.id !== id), placements, ...(adjustments ? { adjustments } : {}) };
 }
 
 export function removeCriterion(data, id) {
   const { [id]: _removed, ...placements } = data.placements;
-  return { ...data, criteria: data.criteria.filter((c) => c.id !== id), placements };
+  const { [id]: _adj, ...adjustments } = data.adjustments ?? {};
+  return { ...data, criteria: data.criteria.filter((c) => c.id !== id), placements, ...(data.adjustments ? { adjustments } : {}) };
 }
 
 export function moveCriterion(data, id, delta) {
@@ -65,8 +69,19 @@ export function setPoints(data, criterionId, points) {
   };
 }
 
+// 보정을 정한다. 0이면 지운다. 정수가 아니거나 ±MAX_ADJUST를 넘으면 무시한다.
+export function setAdjustment(data, criterionId, subjectId, value) {
+  if (!Number.isInteger(value) || Math.abs(value) > MAX_ADJUST) return data;
+  if (value !== 0 && !TIERS.includes(data.placements[criterionId]?.[subjectId])) return data;
+  const { [subjectId]: _old, ...rest } = data.adjustments?.[criterionId] ?? {};
+  const byCriterion = value === 0 ? rest : { ...rest, [subjectId]: value };
+  if (value === 0 && data.adjustments?.[criterionId]?.[subjectId] === undefined) return data;
+  return { ...data, adjustments: { ...data.adjustments, [criterionId]: byCriterion } };
+}
+
 export function setPlacement(data, criterionId, subjectId, tier) {
   const current = data.placements[criterionId] ?? {};
+  if (current[subjectId] !== tier) data = setAdjustment(data, criterionId, subjectId, 0); // 티어를 옮기면 보정은 초기화
   let next;
   if (tier === null) {
     const { [subjectId]: _removed, ...rest } = current;
@@ -109,7 +124,7 @@ export function setDescription(data, criterionId, text) {
 
 // 기준 전체를 바꾼다. 기준 id가 새로 매겨지므로 기존 배치는 비운다.
 export function replaceCriteria(data, criteria) {
-  return { ...data, criteria, placements: {} };
+  return { ...dropAdjustments(data), criteria, placements: {} };
 }
 
 // ---- 워크스페이스(평가 여러 개) ----

@@ -1,5 +1,5 @@
-import { TIERS, progress } from './core.js';
-import { setPlacement } from './model.js';
+import { TIERS, MAX_ADJUST, adjustmentOf, adjustmentUnit, progress } from './core.js';
+import { setAdjustment, setPlacement } from './model.js';
 import { btnLink, callout, createApp, el, renderHeader, tabList } from './ui-common.js';
 
 let currentCriterionId = null;
@@ -34,6 +34,14 @@ createApp((data, commit) => {
       subject.name,
     );
     if (tierOf(subject) !== null) {
+      const value = adjustmentOf(data, criterion.id, subject.id);
+      const unit = Number(adjustmentUnit(criterion).toFixed(4));
+      const step = (delta) => commit(setAdjustment(data, criterion.id, subject.id, value + delta));
+      node.append(
+        el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 -${unit}점`, disabled: value <= -MAX_ADJUST, onclick: () => step(-1) }, '−'),
+        el('span', { class: 'adj-value', title: `보정 ${value * unit}점` }, value > 0 ? `+${value}` : String(value)),
+        el('button', { type: 'button', class: 'adj', title: `같은 티어 안에서 +${unit}점`, disabled: value >= MAX_ADJUST, onclick: () => step(1) }, '+'),
+      );
       node.append(el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
     }
     return node;
