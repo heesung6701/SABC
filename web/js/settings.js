@@ -319,6 +319,18 @@ function criteriaPanel(data, apply, refresh) {
     data.criteria.length === 0
       ? el('p', { class: 'muted' }, '아직 기준이 없어요. 무엇을 기준으로 티어를 나눌지 추가해 주세요.')
       : el('div', { class: 'stack' }, ...data.criteria.map((criterion, i) => criterionCard(criterion, i, data.criteria.length, apply, refresh))),
+    el(
+      'section',
+      { class: 'card' },
+      el('h2', {}, '기준 가져오기 / 내보내기 (JSON)'),
+      el('p', { class: 'muted' }, '기준의 이름, 설명, 티어 설명, 점수표만 저장해요. 가져오면 현재 기준을 교체하고 배치는 비워져요.'),
+      el(
+        'div',
+        { class: 'row wrap' },
+        btn('기준 내보내기', { variant: 'neutralSolid', disabled: data.criteria.length === 0, onclick: () => download('sabc-criteria.json', exportCriteriaJson(data)) }),
+        ...fileImport('기준 가져오기', 'application/json,.json', parseCriteriaJson, '현재 기준을 교체하고 배치를 비웁니다. 계속할까요?', ({ criteria }) => apply((d) => replaceCriteria(d, criteria))),
+      ),
+    ),
   );
 }
 
@@ -357,18 +369,6 @@ function dataPanel(data, apply, current) {
         { class: 'row wrap' },
         btn('CSV 내보내기', { variant: 'neutralSolid', onclick: () => download('sabc-sheet.csv', exportSheetCsv(current()), 'text/csv;charset=utf-8') }),
         ...fileImport('CSV 가져오기', '.csv,text/csv', (text) => importSheetCsv(current(), text), '현재 대상자와 배치를 교체합니다. 계속할까요?', ({ data: next }) => apply(next)),
-      ),
-    ),
-    el(
-      'section',
-      { class: 'card' },
-      el('h2', {}, '평가 기준 (JSON)'),
-      el('p', { class: 'muted' }, '기준의 이름, 설명, 점수표만 저장해요. 가져오면 현재 기준을 교체하고 배치는 비워져요.'),
-      el(
-        'div',
-        { class: 'row wrap' },
-        btn('기준 내보내기', { variant: 'neutralSolid', onclick: () => download('sabc-criteria.json', exportCriteriaJson(current())) }),
-        ...fileImport('기준 가져오기', 'application/json,.json', parseCriteriaJson, '현재 기준을 교체하고 배치를 비웁니다. 계속할까요?', ({ criteria }) => apply((d) => replaceCriteria(d, criteria))),
       ),
     ),
     el(
