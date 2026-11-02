@@ -96,3 +96,4 @@ td.num { font-variant-numeric: tabular-nums; }
 .row.end { justify-content: flex-end; }
 .sabc-dialog { width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow: auto; border: 0; border-radius: var(--seed-radius-r4); padding: var(--seed-dimension-x5); background: var(--seed-color-bg-layer-default); color: var(--seed-color-fg-neutral); }
 .sabc-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+.seed-tabs__trigger:disabled { opacity: 0.4; cursor: not-allowed; }

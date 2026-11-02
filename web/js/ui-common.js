@@ -103,10 +103,11 @@ export function tabList(items, activeKey, { nav = false } = {}) {
     ...items.map((item) => {
       const active = item.key === activeKey;
       return el(
-        item.href ? 'a' : 'button',
+        item.href && !item.disabled ? 'a' : 'button',
         {
           class: 'seed-tabs__trigger seed-tabs__trigger--size_medium seed-tabs__trigger--triggerLayout_hug',
-          ...(item.href ? { href: item.href } : { type: 'button' }),
+          ...(item.href && !item.disabled ? { href: item.href } : { type: 'button' }),
+          ...(item.disabled ? { disabled: true, title: '평가를 먼저 만들어 주세요' } : {}),
           ...(nav ? (active ? { 'aria-current': 'page' } : {}) : { role: 'tab', 'aria-selected': String(active) }),
           ...(active ? { 'data-selected': '' } : {}),
           onclick: item.onclick,
@@ -148,7 +149,7 @@ export const evaluations = {
 };
 
 // "새 평가" 대화상자: 이름 + 시작 내용(preset 또는 기존 평가 복사)을 고르면 대상자·기준이 채워지고, 만들기 전에 고칠 수 있다.
-export function openNewEvaluationDialog() {
+export function newEvaluationForm({ onCancel } = {}) {
   const templates = [
     ...PRESETS.map((p) => ({ key: `preset:${p.id}`, label: p.name, hint: p.summary, source: p })),
     ...evaluations.list().map((e) => ({
@@ -191,15 +192,13 @@ export function openNewEvaluationDialog() {
   };
   fill();
 
-  const dialog = el('dialog', { class: 'sabc-dialog new-eval-dialog', 'aria-label': '새 평가' });
   const create = () => {
     const criteria = rows.map((r) => ({ ...r, name: (r.name ?? '').trim(), description: (r.description ?? '').trim() })).filter((r) => r.name !== '');
     const data = applyPreset({ subjects: parseNames(subjectsInput.control.value), criteria });
-    dialog.close();
+    onCancel?.();
     evaluations.add(nameInput.control.value, data);
   };
-  dialog.append(
-    el(
+  return el(
       'div',
       { class: 'stack' },
       el('h2', {}, '새 평가'),
@@ -208,13 +207,17 @@ export function openNewEvaluationDialog() {
       hint,
       field('대상자', subjectsInput),
       field('기준', criteriaBox),
-      el('div', { class: 'row end' }, btn('취소', { onclick: () => dialog.close() }), btn('만들기', { variant: 'brandSolid', onclick: create })),
-    ),
+      el('div', { class: 'row end' }, onCancel ? btn('취소', { onclick: onCancel }) : null, btn('만들기', { variant: 'brandSolid', onclick: create })),
   );
+}
+
+export function openNewEvaluationDialog() {
+  const dialog = el('dialog', { class: 'sabc-dialog', 'aria-label': '새 평가' });
+  const close = () => dialog.close();
+  dialog.append(newEvaluationForm({ onCancel: close }));
   dialog.addEventListener('close', () => dialog.remove());
   document.body.append(dialog);
   dialog.showModal();
-  nameInput.control.focus();
 }
 
 // 삭제 확인: 경고를 보여주고 평가 이름을 똑같이 입력해야 지운다.
@@ -295,11 +298,13 @@ export function renderHeader(active) {
     { class: 'eval-picker', 'aria-label': '평가 선택', onchange: (event) => evaluations.switchTo(event.target.value) },
     ...evaluations.list().map((e) => el('option', { value: e.id, selected: e.id === evaluations.activeId() }, e.name)),
   );
+  const none = evaluations.list().length === 0;
+  const pages = PAGES.map((p) => ({ ...p, disabled: none }));
   return el(
     'header',
     { class: 'app-header' },
     el('div', { class: 'brand' }, 'SABC'),
-    el(
+    none ? el('div') : el(
       'div',
       { class: 'row' },
       picker,
@@ -309,7 +314,7 @@ export function renderHeader(active) {
       }),
       btn('평가 설정', { variant: 'ghost', size: 'small', title: '평가 목록 관리', onclick: openEvaluationsDialog }),
     ),
-    el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(PAGES, active, { nav: true })),
+    el('nav', { class: 'app-nav', 'aria-label': '화면 이동' }, tabList(pages, active, { nav: true })),
   );
 }
 
@@ -338,8 +343,7 @@ export function createApp(render) {
     }
     if (data === null) {
       // 평가가 하나도 없으면 평가 만들기 화면을 띄운다
-      root.replaceChildren(...notices, el('div', { class: 'page' }, renderHeader(''), el('section', { class: 'card start' }, el('h2', {}, '평가가 없어요'), btn('+ 새 평가 만들기', { variant: 'brandSolid', onclick: openNewEvaluationDialog }))));
-      if (!document.querySelector('.new-eval-dialog')) openNewEvaluationDialog();
+      root.replaceChildren(...notices, el('div', { class: 'page' }, renderHeader(''), el('section', { class: 'card' }, newEvaluationForm())));
       return;
     }
     root.replaceChildren(...notices, render(data, commit, current));
