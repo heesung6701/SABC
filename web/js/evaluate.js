@@ -103,19 +103,20 @@ createApp((data, commit) => {
       }
       node.append(el('b', { title: '미배치로 되돌리기', onclick: () => place(subject.id, null) }, '×'));
 
+      const toggle = () => {
+        if (expanded) expandedChips.delete(key);
+        else expandedChips.add(key);
+        commit(data);
+      };
+      node.addEventListener('dblclick', (e) => { if (!e.target.closest('button, b')) { cancel(); toggle(); } }); // 더블클릭/더블탭도 같은 토글
       let timer = null;
       let origin = null;
       const cancel = () => { clearTimeout(timer); timer = null; };
-      node.title = expanded ? '길게 눌러 접기' : '길게 눌러 보정(−/+) 펼치기';
+      node.title = expanded ? '길게 누르거나 더블클릭하면 접기' : '길게 누르거나 더블클릭하면 보정(−/+) 펼치기';
       node.addEventListener('pointerdown', (e) => {
         if (e.target.closest('button, b')) return;
         origin = { x: e.clientX, y: e.clientY };
-        timer = setTimeout(() => {
-          timer = null;
-          if (expanded) expandedChips.delete(key);
-          else expandedChips.add(key);
-          commit(data);
-        }, LONG_PRESS_MS);
+        timer = setTimeout(() => { timer = null; toggle(); }, LONG_PRESS_MS);
       });
       node.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - origin.x, e.clientY - origin.y) > 6) cancel(); });
       for (const type of ['pointerup', 'pointercancel', 'pointerleave', 'dragstart']) node.addEventListener(type, cancel);
