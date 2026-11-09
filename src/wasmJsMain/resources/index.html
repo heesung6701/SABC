@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SABC</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; }
+  @media (prefers-color-scheme: dark) { html, body { background: #141414; color: #eee; } }
+  #loading { font: 15px/1.5 system-ui, sans-serif; padding: 24px 16px; color: #888; }
+</style>
+</head>
+<body>
+<!-- Compose가 body에 캔버스를 붙이고 글꼴을 다 받으면 그린다. 그 전까지 보이는 안내. -->
+<p id="loading">불러오는 중…</p>
+<script>if (location.protocol === 'file:') document.getElementById('loading').textContent = 'file://로 열면 동작하지 않습니다. ./gradlew wasmJsBrowserDevelopmentRun 으로 실행해 주세요.'</script>
+<script src="sabc.js"></script>
+</body>
+</html>

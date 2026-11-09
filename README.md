@@ -1,15 +1,23 @@
 # SABC
 
-대상자와 평가 기준을 입력하고, 기준별로 S/A/B/C 티어를 드래그로 매겨 점수·순위를 내는 정적 웹 서비스.
+대상자와 평가 기준을 입력하고, 기준별로 S/A/B/C 티어를 드래그로 매겨 점수·순위를 내는 웹 서비스.
+Compose Multiplatform(Kotlin/Wasm)으로 만든다.
 
 ## 실행
 
 ```sh
-python3 -m http.server -d web 8000   # http://localhost:8000
-npm test                             # 점수·순위·검증·저장소 테스트
+./gradlew wasmJsBrowserDevelopmentRun   # 개발 서버 (브라우저가 열린다)
+./gradlew jvmTest                       # 점수·순위·검증·저장소 테스트
+./gradlew wasmJsBrowserDistribution     # 배포 파일: build/dist/wasmJs/productionExecutable
 ```
 
-모듈 스크립트는 `file://`에서 동작하지 않으므로 로컬 서버로 열어야 한다.
+JDK 17 이상이 필요하다. WebAssembly GC를 지원하는 최신 브라우저(Chrome·Edge 119+, Firefox 120+, Safari 18.2+)에서 동작한다.
+
+## 구조
+
+- `src/commonMain` — 점수·순위·검증·CSV/JSON·저장소 (순수 Kotlin, 플랫폼 무관)
+- `src/wasmJsMain` — Compose UI와 브라우저 연동(localStorage, 파일, confirm)
+- `src/jvmTest` — 공용 로직 테스트. `tests/fixtures/scoring.json`을 읽는다
 
 ## 문서
 
